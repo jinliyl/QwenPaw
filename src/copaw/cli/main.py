@@ -135,6 +135,7 @@ class LazyGroup(click.Group):
         "auth": ("copaw.cli.auth_cmd", "auth_group", ".auth_cmd"),
         "agents": ("copaw.cli.agents_cmd", "agents_group", ".agents_cmd"),
         "agent": ("copaw.cli.agents_cmd", "agents_group", ".agents_cmd"),
+        "plugin": ("copaw.cli.plugin_commands", "plugin", ".plugin_commands"),
         "task": ("copaw.cli.task_cmd", "task_cmd", ".task_cmd"),
     },
 )
