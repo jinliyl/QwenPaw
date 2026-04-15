@@ -708,6 +708,10 @@ class AgentProfileConfig(BaseModel):
         default="",
         description="Path to agent's workspace (optional, for reference)",
     )
+    template_id: Optional[str] = Field(
+        default=None,
+        description="Builtin template used when this agent was created",
+    )
 
     # Agent-specific configurations
     channels: Optional["ChannelConfig"] = Field(
@@ -1095,6 +1099,31 @@ def build_qa_agent_tools_config() -> ToolsConfig:
             "write_file",
             "edit_file",
             "view_image",
+        },
+    )
+    builtin_tools = {
+        name: tc.model_copy(update={"enabled": name in allow})
+        for name, tc in _default_builtin_tools().items()
+    }
+    return ToolsConfig(builtin_tools=builtin_tools)
+
+
+def build_local_agent_tools_config() -> ToolsConfig:
+    """Tools preset for local collaborative agents.
+
+    Inter-agent coordination tools are enabled by default, along with
+    execute_shell_command and file read/write/edit tools, so a local small
+    model can escalate planning work while still handling basic workspace
+    actions. All other built-ins are disabled.
+    """
+    allow = frozenset(
+        {
+            "list_agents",
+            "chat_with_agent",
+            "execute_shell_command",
+            "read_file",
+            "write_file",
+            "edit_file",
         },
     )
     builtin_tools = {
