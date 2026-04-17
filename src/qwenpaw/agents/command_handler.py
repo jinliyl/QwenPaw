@@ -16,6 +16,7 @@ from ..exceptions import SystemCommandException
 
 if TYPE_CHECKING:
     from .memory import BaseMemoryManager
+    from .context import BaseContextManager
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class ConversationCommandHandlerMixin:
     """Mixin for conversation (system) commands: /compact, /new, /clear, etc.
 
     Expects self to have: agent_name, memory, formatter, memory_manager,
-    _enable_memory_manager.
+    context_manager.
     """
 
     # Supported conversation commands (unchanged set)
@@ -67,7 +68,7 @@ class CommandHandler(ConversationCommandHandlerMixin):
         agent_name: str,
         memory,
         memory_manager: "BaseMemoryManager | None" = None,
-        enable_memory_manager: bool = True,
+        context_manager: "BaseContextManager | None" = None,
     ):
         """Initialize command handler.
 
@@ -75,12 +76,12 @@ class CommandHandler(ConversationCommandHandlerMixin):
             agent_name: Name of the agent for message creation
             memory: Agent's in-memory memory instance
             memory_manager: Optional memory manager instance
-            enable_memory_manager: Whether memory manager is enabled
+            context_manager: Optional context manager instance
         """
         self.agent_name = agent_name
         self.memory = memory
         self.memory_manager = memory_manager
-        self._enable_memory_manager = enable_memory_manager
+        self.context_manager = context_manager
 
     def _get_agent_config(self):
         """Get hot-reloaded agent config.
@@ -117,7 +118,11 @@ class CommandHandler(ConversationCommandHandlerMixin):
 
     def _has_memory_manager(self) -> bool:
         """Check if memory manager is available."""
-        return self._enable_memory_manager and self.memory_manager is not None
+        return self.memory_manager is not None
+
+    def _has_context_manager(self) -> bool:
+        """Check if context manager is available."""
+        return self.context_manager is not None
 
     async def _process_compact(
         self,
@@ -132,15 +137,15 @@ class CommandHandler(ConversationCommandHandlerMixin):
                 "- Current memory is empty\n"
                 "- No action taken",
             )
-        if not self._has_memory_manager():
+        if not self._has_memory_manager() or not self._has_context_manager():
             return await self._make_system_msg(
-                "**Memory Manager Disabled**\n\n"
+                "**Memory/Context Manager Disabled**\n\n"
                 "- Memory compaction is not available\n"
-                "- Enable memory manager to use this feature",
+                "- Enable memory and context manager to use this feature",
             )
 
-        self.memory_manager.add_async_summary_task(messages=messages)
-        compact_content = await self.memory_manager.compact_memory(
+        self.memory_manager.add_summarize_task(messages=messages)
+        compact_content = await self.context_manager._compact_context(
             messages=messages,
             previous_summary=self.memory.get_compressed_summary(),
             extra_instruction=extra_instruction,
@@ -182,7 +187,7 @@ class CommandHandler(ConversationCommandHandlerMixin):
                 "- Enable memory manager to use this feature",
             )
 
-        self.memory_manager.add_async_summary_task(messages=messages)
+        self.memory_manager.add_summarize_task(messages=messages)
         self.memory.clear_compressed_summary()
 
         self.memory.clear_content()

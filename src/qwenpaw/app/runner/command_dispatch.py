@@ -129,6 +129,7 @@ async def run_command_path(  # pylint: disable=too-many-statements,too-many-bran
         daemon_ctx = DaemonContext(
             load_config_fn=lambda: load_agent_config(agent_id),
             memory_manager=runner.memory_manager,
+            context_manager=runner.context_manager,
             manager=manager,
             agent_id=agent_id,
             session_id=session_id,
@@ -233,19 +234,27 @@ async def run_command_path(  # pylint: disable=too-many-statements,too-many-bran
         return
 
     # Conversation path: lightweight memory + CommandHandler
-    memory = runner.memory_manager.get_in_memory_memory()
+    context_manager = runner.context_manager
+    memory = (
+        context_manager.get_in_memory_memory()
+        if context_manager is not None
+        else runner.memory_manager.get_in_memory_memory()
+        if runner.memory_manager is not None
+        else None
+    )
     session_state = await runner.session.get_session_state_dict(
         session_id=session_id,
         user_id=user_id,
     )
     memory_state = session_state.get("agent", {}).get("memory", {})
-    memory.load_state_dict(memory_state, strict=False)
+    if memory is not None:
+        memory.load_state_dict(memory_state, strict=False)
 
     conv_handler = CommandHandler(
         agent_name="Friday",
         memory=memory,
         memory_manager=runner.memory_manager,
-        enable_memory_manager=runner.memory_manager is not None,
+        context_manager=context_manager,
     )
     try:
         response_msg = await conv_handler.handle_conversation_command(query)

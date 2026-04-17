@@ -492,15 +492,6 @@ class MemorySummaryConfig(BaseModel):
         description="Whether to enable memory summarization during compaction",
     )
 
-    memory_prompt_enabled: bool = Field(
-        default=True,
-        description=(
-            "Whether to include the memory guidance section in the system"
-            " prompt (the <!-- memory:start/end --> block in AGENTS.md)."
-            " Set to False to omit it and save tokens."
-        ),
-    )
-
     dream_cron: str = Field(
         default="0 23 * * *",
         description="Cron expression for dream-based memory optimization job "
@@ -703,11 +694,19 @@ class AgentsRunningConfig(BaseModel):
         description="Embedding model configuration",
     )
 
-    memory_manager_backend: Literal["remelight"] = Field(
-        default="remelight",
+    memory_manager_backend: Literal["ReMeLight"] = Field(
+        default="ReMeLight",
         description=(
             "Memory manager backend type. "
-            "Currently only 'remelight' is supported."
+            "Currently only 'ReMeLight' is supported."
+        ),
+    )
+
+    context_manager_backend: Literal["light"] = Field(
+        default="light",
+        description=(
+            "Context manager backend type. "
+            "Currently only 'light' is supported."
         ),
     )
 

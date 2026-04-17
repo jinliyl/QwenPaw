@@ -37,13 +37,32 @@ logger = logging.getLogger(__name__)
 
 def _resolve_memory_class(backend: str) -> type:
     """Return the memory manager class for the given backend name."""
-    from ...agents.memory import ReMeLightMemoryManager
+    import qwenpaw.agents.memory  # noqa: F401 – triggers registration
 
-    if backend == "remelight":
-        return ReMeLightMemoryManager
-    raise ConfigurationException(
-        message=f"Unsupported memory manager backend: '{backend}'",
-    )
+    from ...agents.memory.base_memory_manager import memory_registry
+
+    cls = memory_registry.get(backend)
+    if cls is None:
+        raise ConfigurationException(
+            message=f"Unsupported memory manager backend: '{backend}'. "
+            f"Registered: {memory_registry.list_registered()}",
+        )
+    return cls
+
+
+def _resolve_context_class(backend: str) -> type:
+    """Return the context manager class for the given backend name."""
+    import qwenpaw.agents.context  # noqa: F401 – triggers registration
+
+    from ...agents.context.base_context_manager import context_registry
+
+    cls = context_registry.get(backend)
+    if cls is None:
+        raise ConfigurationException(
+            message=f"Unsupported context manager backend: '{backend}'. "
+            f"Registered: {context_registry.list_registered()}",
+        )
+    return cls
 
 
 class Workspace:
@@ -96,6 +115,11 @@ class Workspace:
     def memory_manager(self):
         """Get memory manager instance from ServiceManager."""
         return self._service_manager.services.get("memory_manager")
+
+    @property
+    def context_manager(self):
+        """Get context manager instance from ServiceManager."""
+        return self._service_manager.services.get("context_manager")
 
     @property
     def mcp_manager(self):
@@ -183,6 +207,29 @@ class Workspace:
                     ws._service_manager.services["runner"],
                     "memory_manager",
                     mm,
+                ),
+                start_method="start",
+                stop_method="close",
+                reusable=True,
+                priority=20,
+                concurrent_init=True,
+            ),
+        )
+
+        sm.register(
+            ServiceDescriptor(
+                name="context_manager",
+                service_class=lambda ws: _resolve_context_class(
+                    ws._config.running.context_manager_backend,
+                ),
+                init_args=lambda ws: {
+                    "working_dir": str(ws.workspace_dir),
+                    "agent_id": ws.agent_id,
+                },
+                post_init=lambda ws, cm: setattr(
+                    ws._service_manager.services["runner"],
+                    "context_manager",
+                    cm,
                 ),
                 start_method="start",
                 stop_method="close",
@@ -300,6 +347,7 @@ class Workspace:
             components: Dict mapping component name to instance.
                 Supported keys:
                 - 'memory_manager': BaseMemoryManager instance
+                - 'context_manager': BaseContextManager instance
                 - 'chat_manager': ChatManager instance
 
         Example:

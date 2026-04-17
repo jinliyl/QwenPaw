@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from ..app.mcp import HttpStatefulClient, StdIOStatefulClient
 from .command_handler import CommandHandler
-from .hooks import BootstrapHook, MemoryCompactionHook
+from .hooks import BootstrapHook
 from .model_factory import create_model_and_formatter
 from .prompt import (
     build_multimodal_hint,
@@ -55,7 +55,6 @@ from .tools import (
     view_image,
     view_video,
     write_file,
-    create_memory_search_tool,
 )
 from .utils import process_file_and_media_blocks_in_message
 from ..constant import (
@@ -63,6 +62,7 @@ from ..constant import (
     WORKING_DIR,
 )
 from ..agents.memory import BaseMemoryManager
+from ..agents.context import BaseContextManager
 
 if TYPE_CHECKING:
     from ..config.config import AgentProfileConfig
@@ -97,9 +97,9 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         self,
         agent_config: "AgentProfileConfig",
         env_context: Optional[str] = None,
-        enable_memory_manager: bool = True,
         mcp_clients: Optional[List[Any]] = None,
         memory_manager: "BaseMemoryManager | None" = None,
+        context_manager: "BaseContextManager | None" = None,
         request_context: Optional[dict[str, str]] = None,
         namesake_strategy: NamesakeStrategy = "skip",
         workspace_dir: Path | None = None,
@@ -113,10 +113,11 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
                 memory_compact_threshold, etc.) and language setting.
             env_context: Optional environment context to prepend to
                 system prompt
-            enable_memory_manager: Whether to enable memory manager
             mcp_clients: Optional list of MCP clients for tool
                 integration
-            memory_manager: Optional memory manager instance
+            memory_manager: Optional memory manager instance. Pass ``None``
+                to disable the memory manager entirely.
+            context_manager: Optional context manager instance
             request_context: Optional request context with session_id,
                 user_id, channel, agent_id
             namesake_strategy: Strategy to handle namesake tool functions.
@@ -170,18 +171,17 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         )
 
         # Setup memory manager
-        self._setup_memory_manager(
-            enable_memory_manager,
-            memory_manager,
-            namesake_strategy,
-        )
+        self._setup_memory_manager(memory_manager)
+
+        # Setup context manager
+        self._setup_context_manager(context_manager)
 
         # Setup command handler
         self.command_handler = CommandHandler(
             agent_name=self.name,
             memory=self.memory,
             memory_manager=self.memory_manager,
-            enable_memory_manager=self._enable_memory_manager,
+            context_manager=self.context_manager,
         )
 
         # Register hooks
@@ -372,20 +372,12 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         ):
             heartbeat_enabled = self._agent_config.heartbeat.enabled
 
-        # Check if memory prompt is enabled in agent config
-        memory_prompt_enabled = True
-        try:
-            memory_prompt_enabled = (
-                self._agent_config.running.memory_summary.memory_prompt_enabled
-            )
-        except AttributeError:
-            pass
-
         sys_prompt = build_system_prompt_from_working_dir(
             working_dir=self._workspace_dir,
             agent_id=agent_id,
             heartbeat_enabled=heartbeat_enabled,
-            memory_prompt_enabled=memory_prompt_enabled,
+            language=self._language,
+            memory_manager=self.memory_manager,
         )
         logger.debug("System prompt:\n%s...", sys_prompt[:100])
 
@@ -401,38 +393,41 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
 
     def _setup_memory_manager(
         self,
-        enable_memory_manager: bool,
         memory_manager: BaseMemoryManager | None,
-        namesake_strategy: NamesakeStrategy,
     ) -> None:
         """Setup memory manager and register memory search tool if enabled.
 
         Args:
-            enable_memory_manager: Whether to enable memory manager
-            memory_manager: Optional memory manager instance
-            namesake_strategy: Strategy to handle namesake tool functions
+            memory_manager: Optional memory manager instance.
         """
-        # Check env var: if ENABLE_MEMORY_MANAGER=false, disable memory manager
-        env_enable_mm = os.getenv("ENABLE_MEMORY_MANAGER", "")
-        if env_enable_mm.lower() == "false":
-            enable_memory_manager = False
-
-        self._enable_memory_manager: bool = enable_memory_manager
         self.memory_manager = memory_manager
 
-        # Register memory_search tool if enabled and available
-        if self._enable_memory_manager and self.memory_manager is not None:
-            # update memory manager
-            self.memory = self.memory_manager.get_in_memory_memory()
-            self.memory_manager.chat_model = self.model
-            self.memory_manager.formatter = self.formatter
+        # Register memory tools provided by the memory manager
+        if self.memory_manager is not None:
+            memory_tools = self.memory_manager.list_memory_tools()
+            for tool_fn in memory_tools:
+                self.toolkit.register_tool_function(
+                    tool_fn,
+                    namesake_strategy=self._namesake_strategy,
+                )
+            logger.debug("Registered memory tools: %s", [fn.__name__ for fn in memory_tools])
 
-            # Register memory_search as a tool function
-            self.toolkit.register_tool_function(
-                create_memory_search_tool(self.memory_manager),
-                namesake_strategy=namesake_strategy,
-            )
-            logger.debug("Registered memory_search tool")
+    def _setup_context_manager(
+        self,
+        context_manager: "BaseContextManager | None",
+    ) -> None:
+        """Setup context manager and attach model/formatter if available.
+
+        Args:
+            context_manager: Optional context manager instance
+        """
+        self.context_manager: BaseContextManager | None = context_manager
+
+        if self.context_manager is not None:
+            memory = self.context_manager.get_in_memory_memory()
+            if memory is not None:
+                self.memory = memory
+            logger.debug("Context manager configured")
 
     def _register_hooks(self) -> None:
         """Register pre-reasoning and pre-acting hooks."""
@@ -452,17 +447,30 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         )
         logger.debug("Registered bootstrap hook")
 
-        # Memory compaction hook - auto-compact when context is full
-        if self._enable_memory_manager and self.memory_manager is not None:
-            memory_compact_hook = MemoryCompactionHook(
-                memory_manager=self.memory_manager,
+        # Context manager hooks - delegate compaction / tool-result trimming
+        # to the context manager's lifecycle methods
+        if self.context_manager is not None:
+            self.register_instance_hook(
+                hook_type="pre_reply",
+                hook_name="context_pre_reply",
+                hook=self.context_manager.pre_reply,
             )
             self.register_instance_hook(
                 hook_type="pre_reasoning",
-                hook_name="memory_compact_hook",
-                hook=memory_compact_hook.__call__,
+                hook_name="context_pre_reasoning",
+                hook=self.context_manager.pre_reasoning,
             )
-            logger.debug("Registered memory compaction hook")
+            self.register_instance_hook(
+                hook_type="post_acting",
+                hook_name="context_post_acting",
+                hook=self.context_manager.post_acting,
+            )
+            self.register_instance_hook(
+                hook_type="post_reply",
+                hook_name="context_post_reply",
+                hook=self.context_manager.post_reply,
+            )
+            logger.debug("Registered context manager hooks")
 
     def rebuild_sys_prompt(self) -> None:
         """Rebuild and replace the system prompt.
@@ -1182,37 +1190,6 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
 
         # Normal message processing
         logger.info("QwenPawAgent.reply: max_iters=%s", self.max_iters)
-
-        if hasattr(self.memory, "_long_term_memory"):
-            running = self._agent_config.running
-            ms = running.memory_summary
-            if (
-                ms.force_memory_search
-                and self.memory_manager is not None
-                and query
-            ):
-                try:
-                    result = await asyncio.wait_for(
-                        self.memory_manager.memory_search(
-                            query=query[:100],
-                            max_results=ms.force_max_results,
-                            min_score=ms.force_min_score,
-                        ),
-                        timeout=ms.force_memory_search_timeout,
-                    )
-                    self.memory._long_term_memory = "\n".join(
-                        block["text"]
-                        for block in (result.content or [])
-                        if isinstance(block, dict) and block.get("text")
-                    )
-                except BaseException as e:
-                    logger.warning(
-                        "force_memory_search failed or timed out,"
-                        f" skipping e={e}",
-                    )
-                    self.memory._long_term_memory = ""
-            else:
-                self.memory._long_term_memory = ""
 
         request_context = getattr(self, "_request_context", {}) or {}
         channel_name = request_context.get("channel", "console")
