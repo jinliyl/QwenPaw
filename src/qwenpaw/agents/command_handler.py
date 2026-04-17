@@ -36,11 +36,10 @@ class ConversationCommandHandlerMixin:
             "clear",
             "history",
             "compact_str",
-            "await_summary",
+            "summarize_status",
             "message",
             "dump_history",
             "load_history",
-            "long_term_memory",
         },
     )
 
@@ -256,33 +255,39 @@ class CommandHandler(ConversationCommandHandlerMixin):
 
         return await self._make_system_msg(history_str)
 
-    async def _process_await_summary(
+    async def _process_summarize_status(
         self,
         _messages: list[Msg],
         _args: str = "",
     ) -> Msg:
-        """Process /await_summary command to wait for all summary tasks."""
+        """Process /summarize_status command to show all summary task status."""
         if not self._has_memory_manager():
             return await self._make_system_msg(
                 "**Memory Manager Disabled**\n\n"
-                "- Cannot await summary tasks\n"
+                "- Cannot list summary task status\n"
                 "- Enable memory manager to use this feature",
             )
 
-        task_count = len(self.memory_manager.summary_tasks)
-        if task_count == 0:
+        task_list = self.memory_manager.list_summarize_status()
+        if not task_list:
             return await self._make_system_msg(
                 "**No Summary Tasks**\n\n"
-                "- No pending summary tasks to wait for",
+                "- No summary tasks have been started",
             )
 
-        result = await self.memory_manager.await_summary_tasks()
-        return await self._make_system_msg(
-            f"**Summary Tasks Complete**\n\n"
-            f"- Waited for {task_count} summary task(s)\n"
-            f"- {result}"
-            f"- All tasks have finished",
-        )
+        status_lines = ["**Summary Task Status**\n\n"]
+        for info in task_list:
+            status_lines.append(
+                f"- **{info['task_id']}**\n"
+                f"  - Start: {info['start_time']}\n"
+                f"  - Status: {info['status']}\n"
+            )
+            if info["status"] == "completed" and info["result"]:
+                status_lines.append(f"  - Result: {info['result'][:200]}...\n")
+            elif info["status"] == "failed" and info["error"]:
+                status_lines.append(f"  - Error: {info['error']}\n")
+
+        return await self._make_system_msg("".join(status_lines))
 
     async def _process_message(
         self,
@@ -484,30 +489,7 @@ class CommandHandler(ConversationCommandHandlerMixin):
                 f"**Load Failed**\n\n" f"- Error: {e}",
             )
 
-    async def _process_long_term_memory(
-        self,
-        _messages: list[Msg],
-        _args: str = "",
-    ) -> Msg:
-        """Process /long_term_memory to display the long-term memory."""
-        long_term_memory = getattr(self.memory, "_long_term_memory", None)
-        if long_term_memory is None:
-            return await self._make_system_msg(
-                "**Long-Term Memory Not Available**\n\n"
-                "- `_long_term_memory` attribute does not exist "
-                "on this memory instance\n"
-                "- This feature requires a ReMeInMemoryMemory-compatible"
-                " memory backend",
-            )
-        if not long_term_memory:
-            return await self._make_system_msg(
-                "**Long-Term Memory Empty**\n\n"
-                "- `_long_term_memory` exists but contains no content yet",
-            )
-        return await self._make_system_msg(
-            f"**Long-Term Memory**\n\n{long_term_memory}",
-        )
-
+    
     async def handle_conversation_command(self, query: str) -> Msg:
         """Process conversation system commands.
 
