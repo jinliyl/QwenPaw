@@ -457,7 +457,7 @@ class LightContextManager(ReMeLightMixin, BaseContextManager):
     ) -> Msg | None:
         return None
 
-    def get_in_memory_memory(self, **_kwargs) -> ReMeInMemoryMemory | None:
+    def get_in_memory_memory(self, **_kwargs) -> "ReMeInMemoryMemory":
         """Retrieve the in-memory memory object with token counting support."""
         self._warn_if_version_mismatch()
         if self._reme is None:

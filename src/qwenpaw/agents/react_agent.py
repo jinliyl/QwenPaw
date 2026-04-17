@@ -144,6 +144,10 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         # Load and register skills
         self._register_skills(toolkit)
 
+        # Initialize memory_manager and context_manager for use in _build_sys_prompt
+        self.memory_manager = memory_manager
+        self.context_manager = context_manager
+
         # Build system prompt
         sys_prompt = self._build_sys_prompt()
 
@@ -170,11 +174,22 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
             max_iters=running_config.max_iters,
         )
 
-        # Setup memory manager
-        self._setup_memory_manager(memory_manager)
+        # Register memory tools provided by the memory manager
+        if self.memory_manager is not None:
+            memory_tools = self.memory_manager.list_memory_tools()
+            for tool_fn in memory_tools:
+                self.toolkit.register_tool_function(
+                    tool_fn,
+                    namesake_strategy=self._namesake_strategy,
+                )
+            logger.debug("Registered memory tools: %s", [fn.__name__ for fn in memory_tools])
 
-        # Setup context manager
-        self._setup_context_manager(context_manager)
+        # Configure context manager memory if available
+        if self.context_manager is not None:
+            memory = self.context_manager.get_in_memory_memory()
+            if memory is not None:
+                self.memory = memory
+            logger.debug("Context manager configured")
 
         # Setup command handler
         self.command_handler = CommandHandler(
@@ -390,44 +405,6 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
             sys_prompt = sys_prompt + "\n\n" + self._env_context
 
         return sys_prompt
-
-    def _setup_memory_manager(
-        self,
-        memory_manager: BaseMemoryManager | None,
-    ) -> None:
-        """Setup memory manager and register memory search tool if enabled.
-
-        Args:
-            memory_manager: Optional memory manager instance.
-        """
-        self.memory_manager = memory_manager
-
-        # Register memory tools provided by the memory manager
-        if self.memory_manager is not None:
-            memory_tools = self.memory_manager.list_memory_tools()
-            for tool_fn in memory_tools:
-                self.toolkit.register_tool_function(
-                    tool_fn,
-                    namesake_strategy=self._namesake_strategy,
-                )
-            logger.debug("Registered memory tools: %s", [fn.__name__ for fn in memory_tools])
-
-    def _setup_context_manager(
-        self,
-        context_manager: "BaseContextManager | None",
-    ) -> None:
-        """Setup context manager and attach model/formatter if available.
-
-        Args:
-            context_manager: Optional context manager instance
-        """
-        self.context_manager: BaseContextManager | None = context_manager
-
-        if self.context_manager is not None:
-            memory = self.context_manager.get_in_memory_memory()
-            if memory is not None:
-                self.memory = memory
-            logger.debug("Context manager configured")
 
     def _register_hooks(self) -> None:
         """Register pre-reasoning and pre-acting hooks."""
