@@ -47,7 +47,7 @@ from ...security.tool_guard.approval import ApprovalDecision
 from ...security.tool_guard.models import TOOL_GUARD_DENIED_MARK
 
 if TYPE_CHECKING:
-    from ...agents.memory import BaseMemoryManager
+    from ...agents.memory import BaseLongTermMemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class AgentRunner(Runner):
         self._chat_manager = None  # Store chat_manager reference
         self._mcp_manager = None  # MCP client manager for hot-reload
         self._workspace: Any = None  # Workspace instance for control commands
-        self.memory_manager: BaseMemoryManager | None = None
+        self.memory_manager: BaseLongTermMemoryService | None = None
         self._task_tracker = task_tracker  # Task tracker for background tasks
 
     def set_chat_manager(self, chat_manager):
