@@ -9,6 +9,7 @@ from .config import (
     SecurityConfig,
     ToolGuardConfig,
     ToolGuardRuleConfig,
+    load_agent_config,
 )
 from .utils import (
     get_available_channels,

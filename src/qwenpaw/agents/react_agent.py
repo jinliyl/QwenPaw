@@ -21,7 +21,8 @@ from pydantic import BaseModel
 
 from ..app.mcp import HttpStatefulClient, StdIOStatefulClient
 from .command_handler import CommandHandler
-from .hooks import BootstrapHook, MemoryCompactionHook
+from .context_management import get_context_management, create_in_memory_memory
+from .hooks import BootstrapHook
 from .model_factory import create_model_and_formatter
 from .prompt import (
     build_multimodal_hint,
@@ -62,7 +63,7 @@ from ..constant import (
     MEDIA_UNSUPPORTED_PLACEHOLDER,
     WORKING_DIR,
 )
-from ..agents.memory import BaseMemoryManager
+from ..agents.memory import BaseLongTermMemoryService
 
 if TYPE_CHECKING:
     from ..config.config import AgentProfileConfig
@@ -99,7 +100,7 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         env_context: Optional[str] = None,
         enable_memory_manager: bool = True,
         mcp_clients: Optional[List[Any]] = None,
-        memory_manager: "BaseMemoryManager | None" = None,
+        memory_manager: "BaseLongTermMemoryService | None" = None,
         request_context: Optional[dict[str, str]] = None,
         namesake_strategy: NamesakeStrategy = "skip",
         workspace_dir: Path | None = None,
@@ -176,12 +177,24 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
             namesake_strategy,
         )
 
+        # Setup context management
+        working_dir = (
+            self._workspace_dir if self._workspace_dir else WORKING_DIR
+        )
+        self.context_management = get_context_management(
+            agent_id=agent_config.id,
+            working_dir=working_dir,
+            memory_manager=self.memory_manager,
+        )
+
         # Setup command handler
         self.command_handler = CommandHandler(
             agent_name=self.name,
             memory=self.memory,
             memory_manager=self.memory_manager,
             enable_memory_manager=self._enable_memory_manager,
+            agent_id=agent_config.id,
+            working_dir=str(working_dir),
         )
 
         # Register hooks
@@ -402,7 +415,7 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
     def _setup_memory_manager(
         self,
         enable_memory_manager: bool,
-        memory_manager: BaseMemoryManager | None,
+        memory_manager: BaseLongTermMemoryService | None,
         namesake_strategy: NamesakeStrategy,
     ) -> None:
         """Setup memory manager and register memory search tool if enabled.
@@ -422,8 +435,11 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
 
         # Register memory_search tool if enabled and available
         if self._enable_memory_manager and self.memory_manager is not None:
-            # update memory manager
-            self.memory = self.memory_manager.get_in_memory_memory()
+            # Create in-memory memory instance
+            self.memory = create_in_memory_memory(
+                agent_id=self.memory_manager.agent_id,
+                working_dir=self.memory_manager.working_dir,
+            )
             self.memory_manager.chat_model = self.model
             self.memory_manager.formatter = self.formatter
 
@@ -435,7 +451,7 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
             logger.debug("Registered memory_search tool")
 
     def _register_hooks(self) -> None:
-        """Register pre-reasoning and pre-acting hooks."""
+        """Register hooks for context management."""
         # Bootstrap hook - checks BOOTSTRAP.md on first interaction
         # Use workspace_dir if available, else fallback to WORKING_DIR
         working_dir = (
@@ -452,17 +468,28 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         )
         logger.debug("Registered bootstrap hook")
 
-        # Memory compaction hook - auto-compact when context is full
-        if self._enable_memory_manager and self.memory_manager is not None:
-            memory_compact_hook = MemoryCompactionHook(
-                memory_manager=self.memory_manager,
-            )
-            self.register_instance_hook(
-                hook_type="pre_reasoning",
-                hook_name="memory_compact_hook",
-                hook=memory_compact_hook.__call__,
-            )
-            logger.debug("Registered memory compaction hook")
+        # Context management hooks - directly use context_management methods
+        self.register_instance_hook(
+            hook_type="pre_reply",
+            hook_name="context_management_pre_reply",
+            hook=self.context_management.pre_reply,
+        )
+        self.register_instance_hook(
+            hook_type="post_reply",
+            hook_name="context_management_post_reply",
+            hook=self.context_management.post_reply,
+        )
+        self.register_instance_hook(
+            hook_type="pre_reasoning",
+            hook_name="context_management_pre_reasoning",
+            hook=self.context_management.pre_reasoning,
+        )
+        self.register_instance_hook(
+            hook_type="post_acting",
+            hook_name="context_management_post_acting",
+            hook=self.context_management.post_acting,
+        )
+        logger.debug("Registered context management hooks")
 
     def rebuild_sys_prompt(self) -> None:
         """Rebuild and replace the system prompt.

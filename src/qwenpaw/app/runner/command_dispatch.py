@@ -22,6 +22,7 @@ from .daemon_commands import (
     parse_daemon_query,
 )
 from ...agents.command_handler import CommandHandler
+from ...agents.context_management import create_in_memory_memory
 from ...config.config import load_agent_config
 
 logger = logging.getLogger(__name__)
@@ -233,7 +234,10 @@ async def run_command_path(  # pylint: disable=too-many-statements,too-many-bran
         return
 
     # Conversation path: lightweight memory + CommandHandler
-    memory = runner.memory_manager.get_in_memory_memory()
+    memory = create_in_memory_memory(
+        agent_id=runner.memory_manager.agent_id,
+        working_dir=runner.memory_manager.working_dir,
+    )
     session_state = await runner.session.get_session_state_dict(
         session_id=session_id,
         user_id=user_id,
@@ -246,6 +250,8 @@ async def run_command_path(  # pylint: disable=too-many-statements,too-many-bran
         memory=memory,
         memory_manager=runner.memory_manager,
         enable_memory_manager=runner.memory_manager is not None,
+        agent_id=runner.memory_manager.agent_id,
+        working_dir=runner.memory_manager.working_dir,
     )
     try:
         response_msg = await conv_handler.handle_conversation_command(query)

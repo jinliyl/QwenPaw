@@ -15,7 +15,7 @@ from ..constant import DEBUG_HISTORY_FILE, MAX_LOAD_HISTORY_COUNT
 from ..exceptions import SystemCommandException
 
 if TYPE_CHECKING:
-    from .memory import BaseMemoryManager
+    from .memory import BaseLongTermMemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,10 @@ class CommandHandler(ConversationCommandHandlerMixin):
         self,
         agent_name: str,
         memory,
-        memory_manager: "BaseMemoryManager | None" = None,
+        memory_manager: "BaseLongTermMemoryService | None" = None,
         enable_memory_manager: bool = True,
+        agent_id: str | None = None,
+        working_dir: str | None = None,
     ):
         """Initialize command handler.
 
@@ -76,11 +78,15 @@ class CommandHandler(ConversationCommandHandlerMixin):
             memory: Agent's in-memory memory instance
             memory_manager: Optional memory manager instance
             enable_memory_manager: Whether memory manager is enabled
+            agent_id: Agent ID for config loading
+            working_dir: Working directory for context management
         """
         self.agent_name = agent_name
         self.memory = memory
         self.memory_manager = memory_manager
         self._enable_memory_manager = enable_memory_manager
+        self.agent_id = agent_id or (memory_manager.agent_id if memory_manager else None)
+        self.working_dir = working_dir
 
     def _get_agent_config(self):
         """Get hot-reloaded agent config.
@@ -88,7 +94,9 @@ class CommandHandler(ConversationCommandHandlerMixin):
         Returns:
             AgentProfileConfig: The current agent configuration
         """
-        return load_agent_config(self.memory_manager.agent_id)
+        if self.agent_id is None:
+            raise RuntimeError("agent_id is required to load agent config")
+        return load_agent_config(self.agent_id)
 
     def is_command(self, query: str | None) -> bool:
         """Check if the query is a system command (alias for mixin)."""
@@ -140,10 +148,8 @@ class CommandHandler(ConversationCommandHandlerMixin):
             )
 
         self.memory_manager.add_async_summary_task(messages=messages)
-        compact_content = await self.memory_manager.compact_memory(
+        compact_content = await self.memory_manager.summary_memory(
             messages=messages,
-            previous_summary=self.memory.get_compressed_summary(),
-            extra_instruction=extra_instruction,
         )
 
         if not compact_content:
