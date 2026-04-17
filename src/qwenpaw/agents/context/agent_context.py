@@ -13,17 +13,11 @@ from agentscope.message import Msg
 
 from ..utils.estimate_token_counter import EstimatedTokenCounter
 from .as_msg_handler import AsMsgHandler
+from .compactor_prompts import SUMMARY_PROMPT_EN
 import logging
 
 
 logger = logging.getLogger(__name__)
-
-
-_SUMMARY_PROMPT_TEMPLATE = """# Summary of previous conversation
-Previous conversation logs are offloaded to dialog/YYYY-MM-DD.jsonl (or nearby date files). 
-Here is the summary:
-{summary}
-The above is a summary of previous conversation, use it as context to maintain continuity."""
 
 
 class AgentContext(InMemoryMemory):
@@ -139,7 +133,7 @@ class AgentContext(InMemoryMemory):
             return [
                 Msg(
                     "user",
-                    _SUMMARY_PROMPT_TEMPLATE.format(summary=self._compressed_summary),
+                    SUMMARY_PROMPT_EN.format(summary=self._compressed_summary),
                     "user",
                 ),
                 *[msg for msg, _ in filtered_content],

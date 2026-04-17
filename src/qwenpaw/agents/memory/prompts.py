@@ -1,22 +1,7 @@
 """Dream memory optimization prompts."""
 
-
-def get_memory_prompt(language: str = "zh") -> str:
-    """Return the memory guidance section for the agent system prompt.
-
-    This prompt explains how the agent should use memory files across
-    sessions.  It was previously embedded in the AGENTS.md template and is
-    now centralised here so every memory-manager backend can expose the same
-    guidance without depending on the workspace template file.
-
-    Args:
-        language: Language code (``"zh"`` or ``"en"``).  Falls back to
-            English for unrecognised codes.
-
-    Returns:
-        Formatted memory guidance string (no surrounding markers).
-    """
-    _zh = """\
+# Memory guidance prompts - explains how agent should use memory files
+MEMORY_GUIDANCE_ZH = """\
 ## 记忆
 
 每次会话都是全新的。工作目录下的文件是你的记忆延续：
@@ -62,7 +47,7 @@ def get_memory_prompt(language: str = "zh") -> str:
 1. 对 MEMORY.md 和 memory/*.md 运行 `memory_search`
 2. 如需阅读每日笔记 `memory/YYYY-MM-DD.md`，直接用 `read_file`"""
 
-    _en = """\
+MEMORY_GUIDANCE_EN = """\
 ## Memory
 
 Each session is fresh. Files in the working directory are your memory continuity:
@@ -108,28 +93,8 @@ Before answering questions about past work, decisions, dates, people, preference
 1. Run memory_search on MEMORY.md and files in memory/*.md.
 2. If you need to read daily notes from memory/YYYY-MM-DD.md, you can directly access them using `read_file`."""
 
-    _prompts = {"zh": _zh, "en": _en}
-    return _prompts.get(language, _en)
-
-
-def get_dream_prompt(language: str = "zh", current_date: str = "") -> str:
-    """Return the dream memory optimization prompt for the given language.
-
-    This prompt instructs the agent to enter a "dream state" in which it reads
-    the day's log and the existing long-term memory file, distils high-value
-    incremental information, deduplicates and merges content, and overwrites
-    ``MEMORY.md`` so it stays concise and up-to-date.
-
-    Args:
-        language: Language code (``"zh"`` or ``"en"``).  Falls back to
-            English for unrecognised codes.
-        current_date: Current date string (``YYYY-MM-DD``) injected into the
-            prompt so the agent knows which daily log to load.
-
-    Returns:
-        Formatted prompt string (no surrounding markers).
-    """
-    _zh = f"""\
+# Dream optimization prompts - instructs agent to consolidate memories
+DREAM_OPTIMIZATION_ZH = """\
 现在进入梦境状态，对长期记忆进行优化整理。请读取今日日志与现有长期记忆，在梦境中提炼高价值增量信息并去重合并，最终覆写至 `MEMORY.md`，确保长期记忆文件保持最新、精简、无冗余。
 
 当前日期: {current_date}
@@ -146,7 +111,7 @@ def get_dream_prompt(language: str = "zh", current_date: str = "") -> str:
 步骤 3 [落盘]：调用 `write` 或 `edit` 工具，将整理后全新的 Markdown 内容覆盖写入到 `MEMORY.md` 中（请保持清晰的层级与列表结构）。
 步骤 4 [苏醒汇报]：从梦境中苏醒后，在对话中向我简短汇报：1) 新增/沉淀了哪些核心记忆；2) 修正/删除了哪些过期内容。"""
 
-    _en = f"""\
+DREAM_OPTIMIZATION_EN = """\
 Enter dream state for memory optimization. Read today's logs and existing long-term memory, extract high-value incremental information in your dream state, deduplicate and merge, and ultimately overwrite `MEMORY.md`. Ensure the long-term memory file remains up-to-date, concise, and non-redundant.
 
 Current date: {current_date}
@@ -162,6 +127,3 @@ Step 1 [Load]: Invoke the `read` tool to read `MEMORY.md` in the root directory 
 Step 2 [Dream Purification]: Compare the old and new content in your dream state. Strictly follow the [Dream Optimization Principles] to deduplicate, replace, remove, and merge, generating entirely new memory content.
 Step 3 [Save]: Invoke the `write` or `edit` tool to overwrite the newly organized Markdown content into `MEMORY.md` (maintain clear hierarchy and list structures).
 Step 4 [Awake Report]: After waking from your dream, briefly report to me in the chat: 1) What core memories were newly added/consolidated; 2) What outdated content was corrected/deleted."""
-
-    _prompts = {"zh": _zh, "en": _en}
-    return _prompts.get(language, _en)

@@ -14,8 +14,7 @@ from agentscope.message import ToolResultBlock, ToolUseBlock
 from agentscope.tool import Toolkit, ToolResponse
 
 from .base_memory_manager import BaseMemoryManager, memory_registry
-from .prompts import get_dream_prompt
-from .prompts import get_memory_prompt
+from .prompts import MEMORY_GUIDANCE_ZH, MEMORY_GUIDANCE_EN, DREAM_OPTIMIZATION_ZH, DREAM_OPTIMIZATION_EN
 from ..model_factory import create_model_and_formatter
 from ..tools import read_file, write_file, edit_file
 from ..utils import get_token_counter
@@ -259,7 +258,8 @@ class ReMeLightMemoryManager(BaseMemoryManager):
 
     def get_memory_prompt(self, language: str = "zh") -> str:
         """Return the memory guidance prompt for inclusion in the system prompt."""
-        return get_memory_prompt(language)
+        prompts = {"zh": MEMORY_GUIDANCE_ZH, "en": MEMORY_GUIDANCE_EN}
+        return prompts.get(language, MEMORY_GUIDANCE_EN)
 
     def list_memory_tools(self):
         """Return memory tool functions to register with the agent toolkit."""
@@ -423,7 +423,9 @@ class ReMeLightMemoryManager(BaseMemoryManager):
         language = getattr(agent_config, "language", "zh")
         current_date = datetime.now().strftime("%Y-%m-%d")
 
-        query_text = get_dream_prompt(language=language, current_date=current_date)
+        prompts = {"zh": DREAM_OPTIMIZATION_ZH, "en": DREAM_OPTIMIZATION_EN}
+        template = prompts.get(language, DREAM_OPTIMIZATION_EN)
+        query_text = template.format(current_date=current_date)
 
         if not query_text.strip():
             logger.debug("dream optimization skipped: empty query")

@@ -8,6 +8,20 @@ SYSTEM_PROMPT_ZH = """\
 你是一个上下文压缩助手。你的角色是创建对话的结构化摘要，
 这些摘要可以在未来会话中用于恢复上下文。专注于保留关键信息，同时减少token数量。"""
 
+SUMMARY_PROMPT_EN = """\
+# Summary of previous conversation
+Previous conversation logs are offloaded to dialog/YYYY-MM-DD.jsonl (or nearby date files).
+Here is the summary:
+{summary}
+The above is a summary of previous conversation, use it as context to maintain continuity."""
+
+SUMMARY_PROMPT_ZH = """\
+# 之前对话的摘要
+之前的对话日志已转储到 dialog/YYYY-MM-DD.jsonl（或相近日期的文件）。
+以下是摘要：
+{summary}
+以上是之前对话的摘要，请将其作为上下文以保持对话的连续性。"""
+
 INITIAL_USER_MESSAGE_EN = """\
 # Task
 Create a structured summary from the conversation above.
