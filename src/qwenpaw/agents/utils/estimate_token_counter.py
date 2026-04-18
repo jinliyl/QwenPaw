@@ -24,7 +24,7 @@ class EstimatedTokenCounter(TokenCounterBase):
             raise ValueError("estimate_divisor cannot be zero")
         self.estimate_divisor: float = estimate_divisor
 
-    async def count(self, text: str, **kwargs) -> int:
+    async def count(self, text: str, **_kwargs) -> int:
         """Count tokens in the given messages.
 
         Args:

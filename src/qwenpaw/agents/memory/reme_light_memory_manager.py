@@ -337,7 +337,11 @@ class ReMeLightMemoryManager(BaseMemoryManager):
             add_thinking_block=cc.compact_with_thinking_block,
         )
 
-    async def retrieve(self, messages: list[Msg] | Msg, **kwargs) -> list[Msg]:
+    async def retrieve(
+        self,
+        messages: list[Msg] | Msg,
+        **_kwargs,
+    ) -> list[Msg]:
         """Retrieve relevant memory based on the given messages.
 
         Builds a query (≤ 100 chars) from the newest message text, runs

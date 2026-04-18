@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-branches
 """Custom memory implementation with bugfixes and extensions."""
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 
 import aiofiles
 import aiofiles.os
-
 from agentscope.agent._react_agent import _MemoryMark  # noqa
 from agentscope.memory import InMemoryMemory
 from agentscope.message import Msg
 
-from ..utils.estimate_token_counter import EstimatedTokenCounter
 from .as_msg_handler import AsMsgHandler
 from .compactor_prompts import SUMMARY_PROMPT_EN
-import logging
-
+from ..utils.estimate_token_counter import EstimatedTokenCounter
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +32,9 @@ class AgentContext(InMemoryMemory):
 
         Args:
             token_counter: Token counter for measuring content length.
-            dialog_path: Path to the dialog storage directory. If provided,
-                messages will be persisted to jsonl files when cleared or compressed.
+            dialog_path: Path to the dialog storage directory.
+                If provided, messages will be persisted to jsonl
+                files when cleared or compressed.
         """
         super().__init__()
         self._token_counter: EstimatedTokenCounter = token_counter
@@ -350,6 +350,6 @@ class AgentContext(InMemoryMemory):
             f"- Max input length: {stats['max_input_length']}\n"
             f"- Context usage: "
             f"{stats['context_usage_ratio']:.1f}%\n"
-            f"- Compressed summary tokens: {stats['compressed_summary_tokens']}\n\n"
-            + "\n\n".join(lines)
+            f"- Compressed summary tokens: "
+            f"{stats['compressed_summary_tokens']}\n\n" + "\n\n".join(lines)
         )

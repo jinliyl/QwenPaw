@@ -79,8 +79,8 @@ class CommandHandler(ConversationCommandHandlerMixin):
         """
         self.agent_name = agent_name
         self.memory: "AgentContext" = memory
-        self.memory_manager = memory_manager
-        self.context_manager = context_manager
+        self.memory_manager: "BaseMemoryManager" = memory_manager
+        self.context_manager: "BaseContextManager" = context_manager
 
     def _get_agent_config(self):
         """Get hot-reloaded agent config.
@@ -144,7 +144,7 @@ class CommandHandler(ConversationCommandHandlerMixin):
             )
 
         self.memory_manager.add_summarize_task(messages=messages)
-        compact_content = await self.context_manager._compact_context(
+        compact_content = await self.context_manager.compact_context(
             messages=messages,
             previous_summary=self.memory.get_compressed_summary(),
             extra_instruction=extra_instruction,

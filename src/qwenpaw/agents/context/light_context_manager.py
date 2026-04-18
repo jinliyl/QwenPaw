@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-nested-blocks,too-many-branches
+# pylint: disable=too-many-return-statements,too-many-statements
 """Context manager for agents with compaction support."""
 import asyncio
 import logging
@@ -23,11 +25,12 @@ from .compactor_prompts import (
     UPDATE_USER_MESSAGE_EN,
     UPDATE_USER_MESSAGE_ZH,
 )
+from ..model_factory import create_model_and_formatter
 from ..tools.utils import truncate_text_output, DEFAULT_MAX_BYTES
 from ..utils import check_valid_messages, get_token_counter
+from ..utils.estimate_token_counter import EstimatedTokenCounter
 from ...config.config import load_agent_config
 from ...constant import MEMORY_COMPACT_KEEP_RECENT, TRUNCATION_NOTICE_MARKER
-from ..utils.estimate_token_counter import EstimatedTokenCounter
 
 if TYPE_CHECKING:
     from ..react_agent import QwenPawAgent
@@ -82,9 +85,8 @@ class LightContextManager(BaseContextManager):
             Number of files successfully deleted.
         """
         agent_config = load_agent_config(self.agent_id)
-        trc = (
-            agent_config.running.light_context_config.tool_result_pruning_config
-        )
+        lcc = agent_config.running.light_context_config
+        trc = lcc.tool_result_pruning_config
         tool_result_dir = Path(self.working_dir) / trc.tool_results_cache
         retention_days = trc.offload_retention_days
 
@@ -136,7 +138,8 @@ class LightContextManager(BaseContextManager):
             encoding: Character encoding.
 
         Returns:
-            Truncated content with notice if truncated, or original if under limit.
+            Truncated content with notice if truncated,
+            or original if under limit.
         """
         if not content:
             return content
@@ -156,13 +159,11 @@ class LightContextManager(BaseContextManager):
 
             # Save full content to file
             agent_config = load_agent_config(self.agent_id)
-            trc = (
-                agent_config.running.light_context_config.tool_result_pruning_config
-            )
+            lcc = agent_config.running.light_context_config
+            trc = lcc.tool_result_pruning_config
             tool_result_dir = Path(self.working_dir) / trc.tool_results_cache
             tool_result_dir.mkdir(parents=True, exist_ok=True)
 
-            saved_path: str | None = None
             fp = tool_result_dir / f"{uuid.uuid4().hex}.txt"
             fp.write_text(content, encoding=encoding)
             saved_path = str(fp)
@@ -214,7 +215,6 @@ class LightContextManager(BaseContextManager):
         recent_n: int = 1,
         old_max_bytes: int = 3000,
         recent_max_bytes: int = DEFAULT_MAX_BYTES,
-        retention_days: int = 3,
         **_kwargs,
     ) -> list[Msg]:
         """Process all messages, truncating large tool results.
@@ -224,7 +224,8 @@ class LightContextManager(BaseContextManager):
             recent_n: Number of recent messages to treat with recent_max_bytes.
             old_max_bytes: Maximum bytes for older tool results.
             recent_max_bytes: Maximum bytes for recent tool results.
-            retention_days: Days to retain offloaded files (unused here, set in init).
+            retention_days: Days to retain offloaded files
+                (unused here, set in init).
 
         Returns:
             Processed messages list.
@@ -248,9 +249,8 @@ class LightContextManager(BaseContextManager):
         try:
             # Load exempt lists from config
             agent_config = load_agent_config(self.agent_id)
-            trc = (
-                agent_config.running.light_context_config.tool_result_pruning_config
-            )
+            lcc = agent_config.running.light_context_config
+            trc = lcc.tool_result_pruning_config
             exempt_extensions = set(
                 ext.lower() for ext in trc.exempt_file_extensions
             )
@@ -277,7 +277,8 @@ class LightContextManager(BaseContextManager):
                             exempt_tool_ids.add(tool_id)
                             continue
 
-                        # Check if file extension is in exempt list for read_file
+                        # Check if file extension is in exempt list
+                        # for read_file
                         if tool_name == "read_file":
                             for ext in exempt_extensions:
                                 if ext in raw_input:
@@ -375,9 +376,8 @@ class LightContextManager(BaseContextManager):
         max_input_length: int = 100000,
         compact_ratio: float = 0.5,
         add_thinking_block: bool = True,
-        return_dict: bool = True,
         **_kwargs,
-    ) -> str | dict:
+    ) -> dict:
         """Compact messages into a condensed summary.
 
         Args:
@@ -391,22 +391,18 @@ class LightContextManager(BaseContextManager):
             max_input_length: Maximum input length for token calculation.
             compact_ratio: Ratio for compact threshold calculation.
             add_thinking_block: Whether to include thinking blocks.
-            return_dict: Whether to return dict with metadata.
 
         Returns:
-            Compacted summary string, or dict with metadata if return_dict=True.
+            Dict with keys: user_message, history_compact, is_valid.
         """
         if not messages:
-            if return_dict:
-                return {
-                    "user_message": "",
-                    "history_compact": "",
-                    "is_valid": False,
-                }
-            return ""
+            return {
+                "user_message": "",
+                "history_compact": "",
+                "is_valid": False,
+            }
 
         agent_config = load_agent_config(self.agent_id)
-        cc = agent_config.running.light_context_config.context_compact_config
 
         # Use provided token counter or get from config
         token_counter = as_token_counter or get_token_counter(agent_config)
@@ -432,13 +428,11 @@ class LightContextManager(BaseContextManager):
 
         if not history_formatted_str:
             logger.warning(f"No history to compact. messages={messages}")
-            if return_dict:
-                return {
-                    "user_message": "",
-                    "history_compact": "",
-                    "is_valid": False,
-                }
-            return ""
+            return {
+                "user_message": "",
+                "history_compact": "",
+                "is_valid": False,
+            }
 
         # Select prompts based on language
         is_zh = language.lower() == "zh"
@@ -466,7 +460,10 @@ class LightContextManager(BaseContextManager):
                 f"# previous-summary\n{previous_summary}\n\n{update_user_msg}"
             )
         else:
-            user_message = f"# conversation\n{history_formatted_str}\n\n{initial_user_msg}"
+            user_message = (
+                f"# conversation\n{history_formatted_str}\n\n"
+                f"{initial_user_msg}"
+            )
 
         if extra_instruction:
             user_message += f"\n\n# extra-instruction\n{extra_instruction}"
@@ -491,23 +488,58 @@ class LightContextManager(BaseContextManager):
             logger.warning(
                 f"Invalid summary result: {history_compact[:200]}...",
             )
-            if return_dict:
-                return {
-                    "user_message": user_message,
-                    "history_compact": history_compact,
-                    "is_valid": False,
-                }
-            return ""
-
-        logger.info(f"Compactor Result:\n{history_compact[:500]}...")
-
-        if return_dict:
             return {
                 "user_message": user_message,
                 "history_compact": history_compact,
-                "is_valid": True,
+                "is_valid": False,
             }
-        return history_compact
+
+        logger.info(f"Compactor Result:\n{history_compact[:500]}...")
+
+        return {
+            "user_message": user_message,
+            "history_compact": history_compact,
+            "is_valid": True,
+        }
+
+    async def compact_context(
+        self,
+        messages: list[Msg],
+        previous_summary: str = "",
+        extra_instruction: str = "",
+    ) -> str:
+        """Public interface for context compaction.
+
+        Args:
+            messages: List of messages to compact.
+            previous_summary: Previous summary to update (if exists).
+            extra_instruction: Extra instruction for compaction.
+
+        Returns:
+            Compacted summary string, or empty string if compaction failed.
+        """
+        agent_config = load_agent_config(self.agent_id)
+        running_config = agent_config.running
+        ccc = running_config.light_context_config.context_compact_config
+
+        # Create model and formatter for compaction
+        model, formatter = create_model_and_formatter(self.agent_id)
+
+        result = await self._compact_context(
+            messages=messages,
+            previous_summary=previous_summary,
+            extra_instruction=extra_instruction,
+            as_llm=model,
+            as_llm_formatter=formatter,
+            as_token_counter=get_token_counter(agent_config),
+            language=agent_config.language,
+            max_input_length=running_config.max_input_length,
+            compact_ratio=ccc.compact_threshold_ratio,
+            add_thinking_block=ccc.compact_with_thinking_block,
+        )
+        if result.get("is_valid"):
+            return result.get("history_compact", "")
+        return ""
 
     # ------------------------------------------------------------------
     # Agent lifecycle hook methods
@@ -555,9 +587,8 @@ class LightContextManager(BaseContextManager):
             return None
 
         agent_config = load_agent_config(self.agent_id)
-        ms = (
-            agent_config.running.reme_light_memory_config.force_memory_search_config
-        )
+        rlmc = agent_config.running.reme_light_memory_config
+        ms = rlmc.force_memory_search_config
 
         if not ms.enabled:
             return None
@@ -617,13 +648,12 @@ class LightContextManager(BaseContextManager):
                 text=(system_prompt or "") + (compressed_summary or ""),
             )
 
+            ccc = running_config.light_context_config.context_compact_config
             context_compact_threshold = int(
-                running_config.max_input_length
-                * running_config.light_context_config.context_compact_config.compact_threshold_ratio,
+                running_config.max_input_length * ccc.compact_threshold_ratio,
             )
             context_compact_reserve = int(
-                running_config.max_input_length
-                * running_config.light_context_config.context_compact_config.reserve_threshold_ratio,
+                running_config.max_input_length * ccc.reserve_threshold_ratio,
             )
             left_compact_threshold = (
                 context_compact_threshold - str_token_count
@@ -690,11 +720,9 @@ class LightContextManager(BaseContextManager):
                 "🔄 Context compaction started...",
             )
 
-            if (
-                running_config.light_context_config.context_compact_config.enabled
-            ):
-                cc = running_config.light_context_config.context_compact_config
-                compact_content = await self._compact_context(
+            ccc = running_config.light_context_config.context_compact_config
+            if ccc.enabled:
+                result = await self._compact_context(
                     messages=messages_to_compact,
                     previous_summary=memory.get_compressed_summary(),
                     as_llm=agent.model,
@@ -702,8 +730,13 @@ class LightContextManager(BaseContextManager):
                     as_token_counter=token_counter,
                     language=agent_config.language,
                     max_input_length=running_config.max_input_length,
-                    compact_ratio=cc.compact_threshold_ratio,
-                    add_thinking_block=cc.compact_with_thinking_block,
+                    compact_ratio=ccc.compact_threshold_ratio,
+                    add_thinking_block=ccc.compact_with_thinking_block,
+                )
+                compact_content = (
+                    result.get("history_compact", "")
+                    if result.get("is_valid")
+                    else ""
                 )
                 if not compact_content:
                     await self._print_status_message(
@@ -753,9 +786,8 @@ class LightContextManager(BaseContextManager):
 
         try:
             agent_config = load_agent_config(self.agent_id)
-            trc = (
-                agent_config.running.light_context_config.tool_result_pruning_config
-            )
+            lcc = agent_config.running.light_context_config
+            trc = lcc.tool_result_pruning_config
             if not trc.enabled:
                 return None
 

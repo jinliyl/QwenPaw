@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-branches
 """Handler for AgentScope message, token counting, and context."""
 
 import json
@@ -209,8 +210,9 @@ class AsMsgHandler:
         """Format list of messages to a single formatted
         string.
 
-        Messages are processed in reverse order (newest first) and older
-        messages are skipped when token count exceeds context_compact_threshold.
+        Messages are processed in reverse order (newest first)
+        and older messages are skipped when token count
+        exceeds context_compact_threshold.
 
         Args:
             messages: List of Msg objects to format.
@@ -236,8 +238,9 @@ class AsMsgHandler:
                 > context_compact_threshold
             ):
                 logger.info(
-                    f"Skipping older messages: adding {content_token_count} "
-                    f"tokens would exceed threshold {context_compact_threshold} "
+                    f"Skipping older messages: adding "
+                    f"{content_token_count} tokens would exceed "
+                    f"threshold {context_compact_threshold} "
                     f"(current: {total_token_count})",
                 )
                 break
@@ -264,7 +267,8 @@ class AsMsgHandler:
             messages: List of Msg objects to validate.
 
         Returns:
-            True if all tool_use ids have corresponding tool_result ids and vice versa.
+            True if all tool_use ids have corresponding
+            tool_result ids and vice versa.
         """
         tool_use_ids: set[str] = set()
         tool_result_ids: set[str] = set()
@@ -294,7 +298,8 @@ class AsMsgHandler:
 
         Args:
             messages: List of Msg objects to check.
-            context_compact_threshold: Maximum token count threshold to trigger compaction.
+            context_compact_threshold: Maximum token count
+                threshold to trigger compaction.
             context_compact_reserve: Token limit for messages to keep.
 
         Returns:
@@ -339,12 +344,14 @@ class AsMsgHandler:
                 if tool_id:
                     tool_result_locations[tool_id] = idx
 
-        # Iterate from the end, accumulating messages to keep within reserve limit
+        # Iterate from the end, accumulating messages
+        # to keep within reserve limit
         keep_indices: set[int] = set()
         accumulated_tokens = 0
 
         for i in range(len(msg_stats) - 1, -1, -1):
-            # Skip messages already added as tool_use dependencies to avoid double-counting tokens
+            # Skip messages already added as tool_use
+            # dependencies to avoid double-counting tokens
             if i in keep_indices:
                 continue
 
@@ -383,7 +390,8 @@ class AsMsgHandler:
                         _, dep_stat = msg_stats[tool_use_idx]
                         extra_tokens += dep_stat.total_tokens
 
-            # Check if we can fit this message plus its dependencies within reserve
+            # Check if we can fit this message plus
+            # its dependencies within reserve
             if (
                 accumulated_tokens + stat.total_tokens + extra_tokens
                 > context_compact_reserve

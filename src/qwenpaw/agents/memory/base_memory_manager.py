@@ -54,7 +54,8 @@ class BaseMemoryManager(ABC):
 
     @abstractmethod
     def get_memory_prompt(self, language: str = "zh") -> str:
-        """Return the memory guidance prompt for inclusion in the system prompt.
+        """Return the memory guidance prompt for inclusion
+        in the system prompt.
 
         Args:
             language: Language code (``"zh"`` or ``"en"``).
@@ -75,6 +76,7 @@ class BaseMemoryManager(ABC):
             Ordered list of tool functions to register with the agent toolkit.
         """
 
+    @abstractmethod
     async def summarize(self, messages: list[Msg], **kwargs) -> str:
         """Summarize conversation messages and persist to memory.
 
@@ -85,9 +87,13 @@ class BaseMemoryManager(ABC):
         Returns:
             The generated summary string.
         """
-        return ""
 
-    async def retrieve(self, messages: list[Msg] | Msg, **kwargs) -> list[Msg]:
+    @abstractmethod
+    async def retrieve(
+        self,
+        messages: list[Msg] | Msg,
+        **kwargs,
+    ) -> list[Msg]:
         """Retrieve relevant memory based on the given messages.
 
         Args:
@@ -97,7 +103,6 @@ class BaseMemoryManager(ABC):
         Returns:
             Retrieved memory messages.
         """
-        return [messages] if isinstance(messages, Msg) else messages
 
     @abstractmethod
     async def dream(self, **kwargs) -> None:
@@ -198,7 +203,7 @@ class BaseMemoryManager(ABC):
         self._update_task_statuses()
 
         result = []
-        for task_id, info in self._summary_task_info.items():
+        for _task_id, info in self._summary_task_info.items():
             result.append(
                 {
                     "task_id": info["task_id"],
@@ -221,10 +226,12 @@ memory_registry: Registry[BaseMemoryManager] = Registry()
 def get_memory_manager(working_dir: str, agent_id: str) -> BaseMemoryManager:
     """Create a memory manager instance for the given agent.
 
-    The backend is resolved from ``agent_config.running.memory_manager_backend``.
+    The backend is resolved from
+    ``agent_config.running.memory_manager_backend``.
 
     Raises:
-        ValueError: When the configured backend has no registered implementation.
+        ValueError: When the configured backend has
+        no registered implementation.
     """
 
     backend = load_agent_config(agent_id).running.memory_manager_backend

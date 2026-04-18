@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # flake8: noqa: E501
+# pylint: disable=line-too-long
 """Dream memory optimization prompts."""
 
 # Memory guidance prompts - explains how agent should use memory files

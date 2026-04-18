@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# flake8: noqa: E501
+# pylint: disable=line-too-long
 """Compactor prompt templates for context compression."""
 
 SYSTEM_PROMPT_EN = """\

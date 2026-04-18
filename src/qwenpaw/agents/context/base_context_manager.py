@@ -193,6 +193,29 @@ class BaseContextManager(ABC):
             counter.
         """
 
+    @abstractmethod
+    async def compact_context(
+        self,
+        messages: list[Msg],
+        previous_summary: str = "",
+        extra_instruction: str = "",
+    ) -> str:
+        """Compact messages into a condensed summary.
+
+        This is the public interface for context compaction, used by
+        command handlers and external callers. Implementations should
+        handle all configuration internally, including obtaining the LLM
+        from agent configuration if needed.
+
+        Args:
+            messages: List of messages to compact.
+            previous_summary: Previous summary to update (if exists).
+            extra_instruction: Extra instruction for compaction.
+
+        Returns:
+            Compacted summary string, or empty string if compaction failed.
+        """
+
 
 # ---------------------------------------------------------------------------
 # Registry and factory for context manager implementations
