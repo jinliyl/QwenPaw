@@ -35,7 +35,9 @@ class BaseMemoryManager(ABC):
         self.agent_id: str = agent_id
         self._summary_task_info: dict[str, dict[str, Any]] = {}
         self._task_counter: int = 0
-        self._task_queue: asyncio.Queue[tuple[str, list[Msg], dict]] = asyncio.Queue()
+        self._task_queue: asyncio.Queue[
+            tuple[str, list[Msg], dict]
+        ] = asyncio.Queue()
         self._worker_task: asyncio.Task | None = None
 
     @abstractmethod
@@ -83,6 +85,7 @@ class BaseMemoryManager(ABC):
         Returns:
             The generated summary string.
         """
+        return ""
 
     async def retrieve(self, messages: list[Msg] | Msg, **kwargs) -> list[Msg]:
         """Retrieve relevant memory based on the given messages.
@@ -94,6 +97,7 @@ class BaseMemoryManager(ABC):
         Returns:
             Retrieved memory messages.
         """
+        return [messages] if isinstance(messages, Msg) else messages
 
     @abstractmethod
     async def dream(self, **kwargs) -> None:
@@ -168,7 +172,9 @@ class BaseMemoryManager(ABC):
             if info["status"] in ("pending", "running"):
                 if self._worker_task.cancelled():
                     info["status"] = "cancelled"
-                    logger.info(f"Summary task {task_id} cancelled (worker stopped)")
+                    logger.info(
+                        f"Summary task {task_id} cancelled (worker stopped)",
+                    )
                 else:
                     exc = self._worker_task.exception()
                     if exc is not None:
@@ -193,13 +199,15 @@ class BaseMemoryManager(ABC):
 
         result = []
         for task_id, info in self._summary_task_info.items():
-            result.append({
-                "task_id": info["task_id"],
-                "start_time": info["start_time"].isoformat(),
-                "status": info["status"],
-                "result": info["result"],
-                "error": info["error"],
-            })
+            result.append(
+                {
+                    "task_id": info["task_id"],
+                    "start_time": info["start_time"].isoformat(),
+                    "status": info["status"],
+                    "result": info["result"],
+                    "error": info["error"],
+                },
+            )
         return result
 
 

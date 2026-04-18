@@ -78,24 +78,24 @@ graph LR
 
 记忆配置位于 `agent.json` 的 `running.reme_light_memory_config` 中：
 
-| 配置项                           | 说明                                                                        | 默认值         |
-| -------------------------------- | --------------------------------------------------------------------------- | -------------- |
-| `summarize_when_compact`         | 是否在上下文压缩时后台保存长期记忆（调用 `summary_memory` 写入文件）        | `true`         |
-| `summarize_interval`             | 每隔 N 次用户查询进行总结。null 表示禁用周期总结                            | `null`         |
-| `dream_cron`                     | 梦境记忆优化任务的 Cron 表达式（空字符串表示禁用）                          | `"0 23 * * *"` |
-| `rebuild_memory_index_on_start`  | 启动时是否清空并重建记忆搜索索引；设为 `false` 可跳过重建，仅监控新文件变更 | `false`        |
-| `recursive_file_watcher`         | 是否递归监控记忆目录（包含子目录如 `memory/subdirectory/*`）                | `false`        |
+| 配置项                          | 说明                                                                        | 默认值         |
+| ------------------------------- | --------------------------------------------------------------------------- | -------------- |
+| `summarize_when_compact`        | 是否在上下文压缩时后台保存长期记忆（调用 `summary_memory` 写入文件）        | `true`         |
+| `summarize_interval`            | 每隔 N 次用户查询进行总结。null 表示禁用周期总结                            | `null`         |
+| `dream_cron`                    | 梦境记忆优化任务的 Cron 表达式（空字符串表示禁用）                          | `"0 23 * * *"` |
+| `rebuild_memory_index_on_start` | 启动时是否清空并重建记忆搜索索引；设为 `false` 可跳过重建，仅监控新文件变更 | `false`        |
+| `recursive_file_watcher`        | 是否递归监控记忆目录（包含子目录如 `memory/subdirectory/*`）                | `false`        |
 
 ### 强制记忆搜索配置
 
 在 `running.reme_light_memory_config.force_memory_search_config` 中配置：
 
-| 配置项        | 说明                                               | 默认值  |
-| ------------- | -------------------------------------------------- | ------- |
-| `enabled`     | 是否在每次对话时强制执行记忆搜索                   | `false` |
-| `max_results` | 强制搜索时最多返回的结果数                         | `1`     |
-| `min_score`   | 强制搜索时的最低相关性分数阈值（0.0 ~ 1.0）        | `0.1`   |
-| `timeout`     | 强制搜索超时时间（秒）                             | `10.0`  |
+| 配置项        | 说明                                        | 默认值  |
+| ------------- | ------------------------------------------- | ------- |
+| `enabled`     | 是否在每次对话时强制执行记忆搜索            | `false` |
+| `max_results` | 强制搜索时最多返回的结果数                  | `1`     |
+| `min_score`   | 强制搜索时的最低相关性分数阈值（0.0 ~ 1.0） | `0.1`   |
+| `timeout`     | 强制搜索超时时间（秒）                      | `10.0`  |
 
 ### Embedding 配置（可选）
 

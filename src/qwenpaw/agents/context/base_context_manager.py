@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Abstract base class for context managers."""
 import logging
 from abc import ABC, abstractmethod
@@ -42,9 +43,9 @@ class BaseContextManager(ABC):
     """
 
     def __init__(
-            self,
-            working_dir: str,
-            agent_id: str,
+        self,
+        working_dir: str,
+        agent_id: str,
     ):
         """Initialize common context manager attributes.
 
@@ -85,9 +86,9 @@ class BaseContextManager(ABC):
 
     @abstractmethod
     async def pre_reply(
-            self,
-            agent: Any,
-            kwargs: dict[str, Any],
+        self,
+        agent: Any,
+        kwargs: dict[str, Any],
     ) -> dict[str, Any] | None:
         """Hook invoked before the agent emits a final reply to the user.
 
@@ -105,9 +106,9 @@ class BaseContextManager(ABC):
 
     @abstractmethod
     async def pre_reasoning(
-            self,
-            agent: Any,
-            kwargs: dict[str, Any],
+        self,
+        agent: Any,
+        kwargs: dict[str, Any],
     ) -> dict[str, Any] | None:
         """Hook invoked before each reasoning step.
 
@@ -129,10 +130,10 @@ class BaseContextManager(ABC):
 
     @abstractmethod
     async def post_acting(
-            self,
-            agent: Any,
-            kwargs: dict[str, Any],
-            output: Any,
+        self,
+        agent: Any,
+        kwargs: dict[str, Any],
+        output: Any,
     ) -> Msg | None:
         """Hook invoked after each tool-use (acting) step.
 
@@ -154,10 +155,10 @@ class BaseContextManager(ABC):
 
     @abstractmethod
     async def post_reply(
-            self,
-            agent: Any,
-            kwargs: dict[str, Any],
-            output: Any,
+        self,
+        agent: Any,
+        kwargs: dict[str, Any],
+        output: Any,
     ) -> Msg | None:
         """Hook invoked after the agent emits a final reply to the user.
 
@@ -201,8 +202,8 @@ context_registry: Registry[BaseContextManager] = Registry()
 
 
 def get_context_manager(
-        working_dir: str,
-        agent_id: str,
+    working_dir: str,
+    agent_id: str,
 ) -> BaseContextManager:
     """Create and return a context manager instance for the given agent.
 

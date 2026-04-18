@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """ReMeLight-backed memory manager for agents."""
 import importlib.metadata
 import json
@@ -14,7 +15,12 @@ from agentscope.message import ToolResultBlock, ToolUseBlock
 from agentscope.tool import Toolkit, ToolResponse
 
 from .base_memory_manager import BaseMemoryManager, memory_registry
-from .prompts import MEMORY_GUIDANCE_ZH, MEMORY_GUIDANCE_EN, DREAM_OPTIMIZATION_ZH, DREAM_OPTIMIZATION_EN
+from .prompts import (
+    MEMORY_GUIDANCE_ZH,
+    MEMORY_GUIDANCE_EN,
+    DREAM_OPTIMIZATION_ZH,
+    DREAM_OPTIMIZATION_EN,
+)
 from ..model_factory import create_model_and_formatter
 from ..tools import read_file, write_file, edit_file
 from ..utils import get_token_counter
@@ -106,9 +112,8 @@ class ReMeLightMemoryManager(BaseMemoryManager):
         fts_enabled = EnvVarLoader.get_bool("FTS_ENABLED", True)
 
         agent_config = load_agent_config(self.agent_id)
-        rebuild_on_start = (
-            agent_config.running.reme_light_memory_config.rebuild_memory_index_on_start
-        )
+        reme_cfg = agent_config.running.reme_light_memory_config
+        rebuild_on_start = reme_cfg.rebuild_memory_index_on_start
 
         store_name = "memory"
         effective_rebuild = self._resolve_rebuild_on_start(
@@ -117,9 +122,7 @@ class ReMeLightMemoryManager(BaseMemoryManager):
             rebuild_on_start=rebuild_on_start,
         )
 
-        recursive_file_watcher = (
-            agent_config.running.reme_light_memory_config.recursive_file_watcher
-        )
+        recursive_file_watcher = reme_cfg.recursive_file_watcher
 
         self._reme = ReMeLight(
             working_dir=working_dir,
@@ -175,9 +178,11 @@ class ReMeLightMemoryManager(BaseMemoryManager):
             )
 
     def get_embedding_config(self) -> dict:
-        """Return embedding config with priority: config > env var > default."""
+        """Return embedding config: config > env var > default."""
         self._warn_if_version_mismatch()
-        cfg = load_agent_config(self.agent_id).running.reme_light_memory_config.embedding_model_config
+        cfg = load_agent_config(
+            self.agent_id,
+        ).running.reme_light_memory_config.embedding_model_config
         return {
             "backend": cfg.backend,
             "api_key": cfg.api_key
@@ -196,9 +201,9 @@ class ReMeLightMemoryManager(BaseMemoryManager):
 
     @staticmethod
     def _resolve_rebuild_on_start(
-            working_dir: str,
-            store_version: str,
-            rebuild_on_start: bool,
+        working_dir: str,
+        store_version: str,
+        rebuild_on_start: bool,
     ) -> bool:
         """Return effective ``rebuild_index_on_start`` value.
 
@@ -251,13 +256,13 @@ class ReMeLightMemoryManager(BaseMemoryManager):
             return True
         result = await self._reme.close()
         logger.info(
-            f"ReMeLightMemoryManager closed: "
-            f"agent_id={self.agent_id}, result={result}",
+            f"ReMeLightMemoryManager closed: agent_id={self.agent_id}, "
+            f"result={result}",
         )
         return result
 
     def get_memory_prompt(self, language: str = "zh") -> str:
-        """Return the memory guidance prompt for inclusion in the system prompt."""
+        """Return the memory guidance prompt for the system prompt."""
         prompts = {"zh": MEMORY_GUIDANCE_ZH, "en": MEMORY_GUIDANCE_EN}
         return prompts.get(language, MEMORY_GUIDANCE_EN)
 
@@ -266,10 +271,10 @@ class ReMeLightMemoryManager(BaseMemoryManager):
         return [self.memory_search]
 
     async def memory_search(
-            self,
-            query: str,
-            max_results: int = 5,
-            min_score: float = 0.1,
+        self,
+        query: str,
+        max_results: int = 5,
+        min_score: float = 0.1,
     ) -> ToolResponse:
         """
         Search MEMORY.md and memory/*.md files semantically.
@@ -310,11 +315,13 @@ class ReMeLightMemoryManager(BaseMemoryManager):
     async def summarize(self, messages: list[Msg], **_kwargs) -> str:
         """Generate a summary of the given messages and persist to memory."""
         agent_config = load_agent_config(self.agent_id)
-        cc = agent_config.running.light_context_config.context_compact_config
+        light_ctx = agent_config.running.light_context_config
+        cc = light_ctx.context_compact_config
         chat_model, formatter = create_model_and_formatter(self.agent_id)
 
         set_current_workspace_dir(Path(self.working_dir))
-        recent_max_bytes = agent_config.running.light_context_config.tool_result_pruning_config.pruning_recent_msg_max_bytes
+        pruning_cfg = light_ctx.tool_result_pruning_config
+        recent_max_bytes = pruning_cfg.pruning_recent_msg_max_bytes
         set_current_recent_max_bytes(recent_max_bytes)
 
         return await self._reme.summary_memory(
@@ -340,9 +347,11 @@ class ReMeLightMemoryManager(BaseMemoryManager):
         found.
         """
 
-        msgs: list[Msg] = [messages] if isinstance(messages, Msg) else list(messages)
+        msgs: list[Msg] = (
+            [messages] if isinstance(messages, Msg) else list(messages)
+        )
 
-        # Build query from the newest messages, preserving as much tail as fits.
+        # Build query from the newest messages, preserving tail.
         query_parts: list[str] = []
         total = 0
         for msg in reversed(msgs):
@@ -363,11 +372,16 @@ class ReMeLightMemoryManager(BaseMemoryManager):
             return msgs
 
         agent_config = load_agent_config(self.agent_id)
-        ms = agent_config.running.reme_light_memory_config.force_memory_search_config
+        reme_cfg = agent_config.running.reme_light_memory_config
+        ms = reme_cfg.force_memory_search_config
         max_results = ms.max_results
         min_score = ms.min_score
 
-        result = await self.memory_search(query=query, max_results=max_results, min_score=min_score)
+        result = await self.memory_search(
+            query=query,
+            max_results=max_results,
+            min_score=min_score,
+        )
         content_blocks = result.content
 
         if not any(b.text for b in content_blocks if hasattr(b, "text")):
@@ -377,13 +391,16 @@ class ReMeLightMemoryManager(BaseMemoryManager):
         tool_use_input = {
             "query": query,
             "max_results": max_results,
-            "min_score": min_score
+            "min_score": min_score,
         }
         assistant_msg = Msg(
             name=self.agent_id,
             role="assistant",
             content=[
-                TextBlock(type="text", text="Let me search memory based on the user's query."),
+                TextBlock(
+                    type="text",
+                    text="Let me search memory based on the user's query.",
+                ),
                 ToolUseBlock(
                     type="tool_use",
                     id=_id,
@@ -412,12 +429,12 @@ class ReMeLightMemoryManager(BaseMemoryManager):
         logger.info("running dream-based memory optimization")
 
         agent_config = load_agent_config(self.agent_id)
+        light_ctx = agent_config.running.light_context_config
         chat_model, formatter = create_model_and_formatter(self.agent_id)
 
         set_current_workspace_dir(Path(self.working_dir))
-        recent_max_bytes = (
-            agent_config.running.light_context_config.tool_result_pruning_config.pruning_recent_msg_max_bytes
-        )
+        pruning_cfg = light_ctx.tool_result_pruning_config
+        recent_max_bytes = pruning_cfg.pruning_recent_msg_max_bytes
         set_current_recent_max_bytes(recent_max_bytes)
 
         language = getattr(agent_config, "language", "zh")
@@ -451,7 +468,7 @@ class ReMeLightMemoryManager(BaseMemoryManager):
             name="DreamOptimizer",
             model=chat_model,
             sys_prompt="You are a Dream Memory Organizer specialized"
-                       " in optimizing long-term memory files.",
+            " in optimizing long-term memory files.",
             toolkit=self.summary_toolkit,
             formatter=formatter,
         )

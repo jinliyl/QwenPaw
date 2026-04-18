@@ -260,7 +260,7 @@ class CommandHandler(ConversationCommandHandlerMixin):
         _messages: list[Msg],
         _args: str = "",
     ) -> Msg:
-        """Process /summarize_status command to show all summary task status."""
+        """Process /summarize_status command to show all status."""
         if not self._has_memory_manager():
             return await self._make_system_msg(
                 "**Memory Manager Disabled**\n\n"
@@ -280,7 +280,7 @@ class CommandHandler(ConversationCommandHandlerMixin):
             status_lines.append(
                 f"- **{info['task_id']}**\n"
                 f"  - Start: {info['start_time']}\n"
-                f"  - Status: {info['status']}\n"
+                f"  - Status: {info['status']}\n",
             )
             if info["status"] == "completed" and info["result"]:
                 status_lines.append(f"  - Result: {info['result'][:200]}...\n")
@@ -489,7 +489,6 @@ class CommandHandler(ConversationCommandHandlerMixin):
                 f"**Load Failed**\n\n" f"- Error: {e}",
             )
 
-    
     async def handle_conversation_command(self, query: str) -> Msg:
         """Process conversation system commands.
 

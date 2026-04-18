@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# flake8: noqa: E501
 """Dream memory optimization prompts."""
 
 # Memory guidance prompts - explains how agent should use memory files

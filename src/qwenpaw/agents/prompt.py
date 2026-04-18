@@ -182,11 +182,17 @@ class PromptBuilder:
 
         # Get memory prompt from manager or fallback
         if self.memory_manager:
-            memory_section = self.memory_manager.get_memory_prompt(self.language)
+            memory_section = self.memory_manager.get_memory_prompt(
+                self.language,
+            )
         else:
             memory_section = ""
 
-        return (content + "\n\n" + memory_section).strip() if content else memory_section
+        return (
+            (content + "\n\n" + memory_section).strip()
+            if content
+            else memory_section
+        )
 
     def build(self) -> str:
         """Build the system prompt from markdown files.

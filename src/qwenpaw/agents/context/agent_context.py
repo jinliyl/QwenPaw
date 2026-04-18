@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Custom memory implementation with bugfixes and extensions."""
 
 import json
@@ -38,7 +39,9 @@ class AgentContext(InMemoryMemory):
         super().__init__()
         self._token_counter: EstimatedTokenCounter = token_counter
         self._msg_handler: AsMsgHandler = AsMsgHandler(token_counter)
-        self._dialog_path: Path | None = Path(dialog_path) if dialog_path else None
+        self._dialog_path: Path | None = (
+            Path(dialog_path) if dialog_path else None
+        )
 
     async def _append_messages_to_dialog(self, messages: list[Msg]) -> int:
         """Append messages to dialog storage file.
@@ -57,14 +60,18 @@ class AgentContext(InMemoryMemory):
             return 0
 
         if self._dialog_path is None:
-            logger.warning("dialog_path is not set, skipping dialog persistence")
+            logger.warning(
+                "dialog_path is not set, skipping dialog persistence",
+            )
             return 0
 
         # Ensure dialog directory exists
         try:
             await aiofiles.os.makedirs(self._dialog_path, exist_ok=True)
         except Exception as e:
-            logger.exception(f"Failed to create dialog directory {self._dialog_path}: {e}")
+            logger.exception(
+                f"Failed to create dialog directory {self._dialog_path}: {e}",
+            )
             return 0
 
         # Group messages by date (extracted from timestamp)
@@ -82,13 +89,17 @@ class AgentContext(InMemoryMemory):
                     messages_by_date[date_str] = []
                 messages_by_date[date_str].append(msg)
             except Exception as e:
-                logger.warning(f"Failed to process message timestamp: {e}, using today's date")
+                logger.warning(
+                    f"Failed to process message timestamp: {e}, "
+                    f"using today's date",
+                )
                 date_str = datetime.now().strftime("%Y-%m-%d")
                 if date_str not in messages_by_date:
                     messages_by_date[date_str] = []
                 messages_by_date[date_str].append(msg)
 
-        # Append messages to corresponding date files (sorted by timestamp within each date)
+        # Append messages to corresponding date files
+        # (sorted by timestamp within each date)
         total_count = 0
         for date_str, msgs in messages_by_date.items():
             # Sort messages by timestamp within the same date
@@ -102,14 +113,25 @@ class AgentContext(InMemoryMemory):
             filepath = self._dialog_path / filename
 
             try:
-                async with aiofiles.open(filepath, mode="a", encoding="utf-8") as f:
+                async with aiofiles.open(
+                    filepath,
+                    mode="a",
+                    encoding="utf-8",
+                ) as f:
                     for msg in msgs_sorted:
                         msg_dict = msg.to_dict()
-                        await f.write(json.dumps(msg_dict, ensure_ascii=False) + "\n")
+                        await f.write(
+                            json.dumps(msg_dict, ensure_ascii=False) + "\n",
+                        )
                         total_count += 1
-                logger.info(f"Appended {len(msgs_sorted)} messages to {filepath}")
+                logger.info(
+                    f"Appended {len(msgs_sorted)} messages to {filepath}",
+                )
             except Exception as e:
-                logger.exception(f"Failed to append messages to dialog file {filepath}: {e}")
+                logger.exception(
+                    f"Failed to append messages to dialog "
+                    f"file {filepath}: {e}",
+                )
 
         return total_count
 
@@ -127,7 +149,11 @@ class AgentContext(InMemoryMemory):
         Returns:
             List of filtered messages
         """
-        filtered_content = [(msg, marks) for msg, marks in self.content if _MemoryMark.COMPRESSED not in marks]
+        filtered_content = [
+            (msg, marks)
+            for msg, marks in self.content
+            if _MemoryMark.COMPRESSED not in marks
+        ]
 
         if prepend_summary and self._compressed_summary:
             return [
@@ -156,7 +182,10 @@ class AgentContext(InMemoryMemory):
     def load_state_dict(self, state_dict: dict, strict: bool = True) -> None:
         """Load the state dictionary for deserialization."""
         if strict and "content" not in state_dict:
-            raise KeyError("The state_dict does not contain 'content' key required for InMemoryMemory.")
+            raise KeyError(
+                "The state_dict does not contain 'content' key "
+                "required for InMemoryMemory.",
+            )
 
         self.content = []  # pylint: disable=attribute-defined-outside-init
         for item in state_dict.get("content", []):
@@ -171,12 +200,18 @@ class AgentContext(InMemoryMemory):
                 self.content.append((msg, []))
 
             else:
-                raise ValueError("Invalid item format in state_dict for InMemoryMemory.")
+                raise ValueError(
+                    "Invalid item format in state_dict for InMemoryMemory.",
+                )
 
         self._compressed_summary = state_dict.get("_compressed_summary", "")
 
-    async def mark_messages_compressed(self, messages: list[Msg]) -> int:
-        """Mark messages as compressed, persist them to dialog, and remove from memory.
+    async def mark_messages_compressed(
+        self,
+        messages: list[Msg],
+    ) -> int:
+        """Mark messages as compressed, persist them to dialog,
+        and remove from memory.
 
         This method:
         1. Persists the given messages to the dialog storage
@@ -197,15 +232,24 @@ class AgentContext(InMemoryMemory):
         # Remove messages from memory
         msg_ids = {msg.id for msg in messages}
         initial_size = len(self.content)
-        self.content = [(msg, marks) for msg, marks in self.content if msg.id not in msg_ids]
+        self.content = [
+            (msg, marks)
+            for msg, marks in self.content
+            if msg.id not in msg_ids
+        ]
         removed_count = initial_size - len(self.content)
 
-        logger.info(f"Marked {removed_count} messages as compressed and removed from memory")
+        logger.info(
+            f"Marked {removed_count} messages as compressed "
+            f"and removed from memory",
+        )
         return removed_count
 
     def clear_compressed_summary(self):
         """Clear the compressed summary."""
-        self._compressed_summary = ""  # pylint: disable=attribute-defined-outside-init
+        self._compressed_summary = (
+            ""  # pylint: disable=attribute-defined-outside-init
+        )
 
     async def clear_content(self):
         """Persist all messages to dialog storage and clear the content.
@@ -242,17 +286,25 @@ class AgentContext(InMemoryMemory):
         messages = await self.get_memory(prepend_summary=False)
 
         compressed_summary = self.get_compressed_summary()
-        compressed_summary_tokens = await self._msg_handler.count_str_token(compressed_summary)
+        compressed_summary_tokens = await self._msg_handler.count_str_token(
+            compressed_summary,
+        )
 
         # Build per-message token details using AsMsgHandler
-        messages_detail = [await self._msg_handler.stat_message(msg) for msg in messages]
+        messages_detail = [
+            await self._msg_handler.stat_message(msg) for msg in messages
+        ]
 
         # Calculate total message tokens from stats
         messages_tokens = sum(stat.total_tokens for stat in messages_detail)
         estimated_tokens = messages_tokens + compressed_summary_tokens
 
         # Calculate context usage ratio
-        context_usage_ratio = (estimated_tokens / max_input_length * 100) if max_input_length > 0 else 0
+        context_usage_ratio = (
+            (estimated_tokens / max_input_length * 100)
+            if max_input_length > 0
+            else 0
+        )
 
         return {
             "total_messages": len(messages),
@@ -279,7 +331,10 @@ class AgentContext(InMemoryMemory):
         for i, msg_stat in enumerate(stats["messages_detail"], 1):
             blocks_info = ""
             if msg_stat.content:
-                block_strs = [f"{b.block_type}(tokens={b.token_count})" for b in msg_stat.content]
+                block_strs = [
+                    f"{b.block_type}(tokens={b.token_count})"
+                    for b in msg_stat.content
+                ]
                 blocks_info = f"\n    content: [{', '.join(block_strs)}]"
 
             lines.append(
@@ -293,6 +348,8 @@ class AgentContext(InMemoryMemory):
             f"- Total messages: {stats['total_messages']}\n"
             f"- Estimated tokens: {stats['estimated_tokens']}\n"
             f"- Max input length: {stats['max_input_length']}\n"
-            f"- Context usage: {stats['context_usage_ratio']:.1f}%\n"
-            f"- Compressed summary tokens: {stats['compressed_summary_tokens']}\n\n" + "\n\n".join(lines)
+            f"- Context usage: "
+            f"{stats['context_usage_ratio']:.1f}%\n"
+            f"- Compressed summary tokens: {stats['compressed_summary_tokens']}\n\n"
+            + "\n\n".join(lines)
         )

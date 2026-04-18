@@ -37,8 +37,6 @@ logger = logging.getLogger(__name__)
 
 def _resolve_memory_class(backend: str) -> type:
     """Return the memory manager class for the given backend name."""
-    import qwenpaw.agents.memory  # noqa: F401 – triggers registration
-
     from ...agents.memory.base_memory_manager import memory_registry
 
     cls = memory_registry.get(backend)
@@ -52,8 +50,6 @@ def _resolve_memory_class(backend: str) -> type:
 
 def _resolve_context_class(backend: str) -> type:
     """Return the context manager class for the given backend name."""
-    import qwenpaw.agents.context  # noqa: F401 – triggers registration
-
     from ...agents.context.base_context_manager import context_registry
 
     cls = context_registry.get(backend)

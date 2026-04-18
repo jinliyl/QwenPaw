@@ -159,10 +159,10 @@ flowchart LR
     D --> E
 ```
 
-| Message type           | Threshold                      | Default | Behavior                                        |
-| ---------------------- | ------------------------------ | ------- | ----------------------------------------------- |
+| Message type                   | Threshold                      | Default | Behavior                                        |
+| ------------------------------ | ------------------------------ | ------- | ----------------------------------------------- |
 | Most recent `pruning_recent_n` | `pruning_recent_msg_max_bytes` | `50000` | Preserve more content; save full text to file   |
-| Older messages         | `pruning_old_msg_max_bytes`    | `3000`  | Aggressive truncation; reuse existing file path |
+| Older messages                 | `pruning_old_msg_max_bytes`    | `3000`  | Aggressive truncation; reuse existing file path |
 
 **Tool-specific behavior:**
 
@@ -267,18 +267,18 @@ Configuration is located in `~/.qwenpaw/workspaces/{agent_id}/agent.json` under 
 
 **`running` top-level fields:**
 
-| Parameter                   | Default  | Description                        |
-| --------------------------- | -------- | ---------------------------------- |
-| `max_input_length`          | `131072` | Model context window size (tokens) |
-| `context_manager_backend`   | `"light"`| Context manager backend type       |
-| `memory_manager_backend`    | `"ReMeLight"` | Memory manager backend type  |
+| Parameter                 | Default       | Description                        |
+| ------------------------- | ------------- | ---------------------------------- |
+| `max_input_length`        | `131072`      | Model context window size (tokens) |
+| `context_manager_backend` | `"light"`     | Context manager backend type       |
+| `memory_manager_backend`  | `"ReMeLight"` | Memory manager backend type        |
 
 **`running.light_context_config` fields:**
 
-| Parameter                       | Default     | Description                                    |
-| -------------------------------- | ----------- | ---------------------------------------------- |
-| `dialog_path`                    | `"dialog"`  | Dialog persistence directory (relative to working dir) |
-| `token_count_estimate_divisor`   | `4.0`       | Divisor for byte-based token estimation        |
+| Parameter                      | Default    | Description                                            |
+| ------------------------------ | ---------- | ------------------------------------------------------ |
+| `dialog_path`                  | `"dialog"` | Dialog persistence directory (relative to working dir) |
+| `token_count_estimate_divisor` | `4.0`      | Divisor for byte-based token estimation                |
 
 **`running.light_context_config.context_compact_config` fields:**
 
@@ -291,13 +291,13 @@ Configuration is located in `~/.qwenpaw/workspaces/{agent_id}/agent.json` under 
 
 **`running.light_context_config.tool_result_pruning_config` fields:**
 
-| Parameter                        | Default | Description                                                         |
-| -------------------------------- | ------- | ------------------------------------------------------------------- |
-| `enabled`                         | `true`  | Whether to prune long tool outputs                               |
-| `pruning_recent_n`                | `2`     | Number of recent messages to use higher threshold for            |
-| `pruning_old_msg_max_bytes`       | `3000`  | Byte threshold for older tool result messages                     |
-| `pruning_recent_msg_max_bytes`    | `50000` | Byte threshold for the most recent `pruning_recent_n` tool result messages |
-| `offload_retention_days`          | `5`     | Days to retain cached tool output files (auto-cleaned after expiry) |
+| Parameter                      | Default | Description                                                                |
+| ------------------------------ | ------- | -------------------------------------------------------------------------- |
+| `enabled`                      | `true`  | Whether to prune long tool outputs                                         |
+| `pruning_recent_n`             | `2`     | Number of recent messages to use higher threshold for                      |
+| `pruning_old_msg_max_bytes`    | `3000`  | Byte threshold for older tool result messages                              |
+| `pruning_recent_msg_max_bytes` | `50000` | Byte threshold for the most recent `pruning_recent_n` tool result messages |
+| `offload_retention_days`       | `5`     | Days to retain cached tool output files (auto-cleaned after expiry)        |
 
 **Calculation Relationships:**
 

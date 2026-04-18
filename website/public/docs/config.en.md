@@ -380,14 +380,14 @@ Controls agent runtime behavior, retry strategies, context management, and memor
 
 **Light Context Configuration (`light_context_config` object):**
 
-| Field                       | Type   | Default  | Description                                              |
-| --------------------------- | ------ | -------- | -------------------------------------------------------- |
-| `dialog_path`               | string | `"dialog"` | Dialog persistence directory (relative to working dir) |
-| `token_count_estimate_divisor` | float | `4.0`  | Divisor for byte-based token estimation (byte_len / divisor) |
+| Field                          | Type   | Default    | Description                                                  |
+| ------------------------------ | ------ | ---------- | ------------------------------------------------------------ |
+| `dialog_path`                  | string | `"dialog"` | Dialog persistence directory (relative to working dir)       |
+| `token_count_estimate_divisor` | float  | `4.0`      | Divisor for byte-based token estimation (byte_len / divisor) |
 
 **Light Context Compaction (`light_context_config.context_compact_config` object):**
 
-| Field                        | Type  | Default | Description                                                               |
+| Field                         | Type  | Default | Description                                                               |
 | ----------------------------- | ----- | ------- | ------------------------------------------------------------------------- |
 | `enabled`                     | bool  | `true`  | Whether to enable automatic context compaction                            |
 | `compact_threshold_ratio`     | float | `0.8`   | Threshold ratio (relative to `max_input_length`) that triggers compaction |
@@ -396,34 +396,34 @@ Controls agent runtime behavior, retry strategies, context management, and memor
 
 **Light Tool Result Pruning (`light_context_config.tool_result_pruning_config` object):**
 
-| Field                        | Type | Default | Description                                        |
-| ----------------------------- | ---- | ------- | -------------------------------------------------- |
-| `enabled`                     | bool | `true`  | Whether to enable tool result pruning              |
-| `pruning_recent_n`            | int  | `2`     | Number of recent messages using higher threshold   |
-| `pruning_old_msg_max_bytes`   | int  | `3000`  | Byte threshold for older tool results              |
-| `pruning_recent_msg_max_bytes`| int  | `50000` | Byte threshold for recent tool results             |
-| `offload_retention_days`      | int  | `5`     | Number of days to retain tool result files         |
+| Field                          | Type | Default | Description                                      |
+| ------------------------------ | ---- | ------- | ------------------------------------------------ |
+| `enabled`                      | bool | `true`  | Whether to enable tool result pruning            |
+| `pruning_recent_n`             | int  | `2`     | Number of recent messages using higher threshold |
+| `pruning_old_msg_max_bytes`    | int  | `3000`  | Byte threshold for older tool results            |
+| `pruning_recent_msg_max_bytes` | int  | `50000` | Byte threshold for recent tool results           |
+| `offload_retention_days`       | int  | `5`     | Number of days to retain tool result files       |
 
 **ReMeLight Memory Configuration (`reme_light_memory_config` object):**
 
-| Field                           | Type   | Default         | Description                                           |
-| ------------------------------- | ------ | -------------- | ----------------------------------------------------- |
-| `summarize_when_compact`        | bool   | `true`         | Whether to enable memory summarization during compaction |
-| `summarize_interval`            | int \| null | `null`     | Summarize every N user queries. null disables periodic summarization |
-| `dream_cron`                    | string | `"0 23 * * *"` | Cron expression for dream-based memory optimization (empty to disable) |
-| `rebuild_memory_index_on_start` | bool   | `false`        | Whether to rebuild memory search index on startup     |
-| `recursive_file_watcher`        | bool   | `false`        | Whether to watch memory directory recursively         |
-| `force_memory_search_config`    | object | _(see below)_  | Force memory search configuration                     |
-| `embedding_model_config`        | object | _(see below)_  | Embedding model configuration                         |
+| Field                           | Type        | Default        | Description                                                            |
+| ------------------------------- | ----------- | -------------- | ---------------------------------------------------------------------- |
+| `summarize_when_compact`        | bool        | `true`         | Whether to enable memory summarization during compaction               |
+| `summarize_interval`            | int \| null | `null`         | Summarize every N user queries. null disables periodic summarization   |
+| `dream_cron`                    | string      | `"0 23 * * *"` | Cron expression for dream-based memory optimization (empty to disable) |
+| `rebuild_memory_index_on_start` | bool        | `false`        | Whether to rebuild memory search index on startup                      |
+| `recursive_file_watcher`        | bool        | `false`        | Whether to watch memory directory recursively                          |
+| `force_memory_search_config`    | object      | _(see below)_  | Force memory search configuration                                      |
+| `embedding_model_config`        | object      | _(see below)_  | Embedding model configuration                                          |
 
 **Force Memory Search Configuration (`reme_light_memory_config.force_memory_search_config` object):**
 
-| Field         | Type  | Default | Description                                              |
-| ------------ | ----- | ------ | -------------------------------------------------------- |
-| `enabled`    | bool  | `false`| Whether to force memory search on every conversation turn |
-| `max_results`| int   | `1`    | Maximum results for forced memory search                 |
-| `min_score`  | float | `0.1`  | Minimum relevance score for forced memory search (0.0 - 1.0) |
-| `timeout`    | float | `10.0` | Timeout in seconds for forced memory search              |
+| Field         | Type  | Default | Description                                                  |
+| ------------- | ----- | ------- | ------------------------------------------------------------ |
+| `enabled`     | bool  | `false` | Whether to force memory search on every conversation turn    |
+| `max_results` | int   | `1`     | Maximum results for forced memory search                     |
+| `min_score`   | float | `0.1`   | Minimum relevance score for forced memory search (0.0 - 1.0) |
+| `timeout`     | float | `10.0`  | Timeout in seconds for forced memory search                  |
 
 **Embedding Configuration (`reme_light_memory_config.embedding_model_config` object):**
 

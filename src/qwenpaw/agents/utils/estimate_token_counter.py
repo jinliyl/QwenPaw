@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Estimated token counter implementation."""
 
 from agentscope.token import TokenCounterBase

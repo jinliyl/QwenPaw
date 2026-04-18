@@ -1,4 +1,5 @@
-"""Handler for AgentScope message processing, token counting, and context management."""
+# -*- coding: utf-8 -*-
+"""Handler for AgentScope message, token counting, and context."""
 
 import json
 import logging
@@ -12,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class AsMsgHandler:
-    """Handles token counting, formatting, and context compaction for AgentScope messages."""
+    """Handles token counting, formatting, and context
+    compaction for AgentScope messages."""
 
     def __init__(self, token_counter: EstimatedTokenCounter):
         self._token_counter = token_counter
@@ -21,7 +23,10 @@ class AsMsgHandler:
         """Count tokens in a string."""
         return await self._token_counter.count(text=text)
 
-    async def _format_tool_result_output(self, output: str | list[dict]) -> tuple[str, int]:
+    async def _format_tool_result_output(
+        self,
+        output: str | list[dict],
+    ) -> tuple[str, int]:
         """Convert tool result output to string."""
         if isinstance(output, str):
             return output, await self.count_str_token(output)
@@ -32,7 +37,8 @@ class AsMsgHandler:
             try:
                 if not isinstance(block, dict) or "type" not in block:
                     logger.warning(
-                        f"Invalid block: {block}, expected a dict with 'type' key, skipped.",
+                        f"Invalid block: {block}, expected a dict "
+                        f"with 'type' key, skipped.",
                     )
                     continue
 
@@ -40,7 +46,9 @@ class AsMsgHandler:
 
                 if block_type == "text":
                     textual_parts.append(block.get("text", ""))
-                    total_token_count += await self.count_str_token(textual_parts[-1])
+                    total_token_count += await self.count_str_token(
+                        textual_parts[-1],
+                    )
 
                 elif block_type in ["image", "audio", "video"]:
                     source = block.get("source", {})
@@ -49,7 +57,9 @@ class AsMsgHandler:
                         total_token_count += len(data) // 4 if data else 10
                     else:
                         url = source.get("url", "")
-                        total_token_count += await self.count_str_token(url) if url else 10
+                        total_token_count += (
+                            await self.count_str_token(url) if url else 10
+                        )
                         textual_parts.append(f"[{block_type}] {url}")
 
                 elif block_type == "file":
@@ -60,7 +70,8 @@ class AsMsgHandler:
 
                 else:
                     logger.warning(
-                        f"Unsupported block type '{block_type}' in tool result, skipped.",
+                        f"Unsupported block type '{block_type}' in "
+                        f"tool result, skipped.",
                     )
 
             except Exception as e:
@@ -121,7 +132,9 @@ class AsMsgHandler:
                     data = source.get("data", "")
                     token_count = len(data) // 4 if data else 10
                 else:
-                    token_count = await self.count_str_token(url) if url else 10
+                    token_count = (
+                        await self.count_str_token(url) if url else 10
+                    )
                 blocks.append(
                     AsBlockStat(
                         block_type=block_type,
@@ -152,7 +165,10 @@ class AsMsgHandler:
             elif block_type == "tool_result":
                 tool_name = block.get("name", "")
                 output = block.get("output", "")
-                formatted_output, token_count = await self._format_tool_result_output(output)
+                (
+                    formatted_output,
+                    token_count,
+                ) = await self._format_tool_result_output(output)
                 blocks.append(
                     AsBlockStat(
                         block_type=block_type,
@@ -164,7 +180,9 @@ class AsMsgHandler:
                 )
 
             else:
-                logger.warning(f"Unsupported block type {block_type}, skipped.")
+                logger.warning(
+                    f"Unsupported block type {block_type}, skipped.",
+                )
 
         return AsMsgStat(
             name=message.name or message.role,
@@ -183,19 +201,21 @@ class AsMsgHandler:
         return total
 
     async def format_msgs_to_str(
-            self,
-            messages: list[Msg],
-            context_compact_threshold: int,
-            include_thinking: bool = True,
+        self,
+        messages: list[Msg],
+        context_compact_threshold: int,
+        include_thinking: bool = True,
     ) -> str:
-        """Format list of messages to a single formatted string.
+        """Format list of messages to a single formatted
+        string.
 
         Messages are processed in reverse order (newest first) and older
         messages are skipped when token count exceeds context_compact_threshold.
 
         Args:
             messages: List of Msg objects to format.
-            context_compact_threshold: Maximum token count before skipping older messages.
+            context_compact_threshold: Maximum token count
+                before skipping older messages.
             include_thinking: Whether to include thinking blocks in output.
         """
         if not messages:
@@ -210,17 +230,23 @@ class AsMsgHandler:
             content_token_count = await self.count_str_token(formatted_content)
 
             is_latest = i == len(messages) - 1
-            if not is_latest and total_token_count + content_token_count > context_compact_threshold:
+            if (
+                not is_latest
+                and total_token_count + content_token_count
+                > context_compact_threshold
+            ):
                 logger.info(
-                    f"Skipping older messages: adding {content_token_count} tokens would exceed threshold "
-                    f"{context_compact_threshold} (current: {total_token_count})",
+                    f"Skipping older messages: adding {content_token_count} "
+                    f"tokens would exceed threshold {context_compact_threshold} "
+                    f"(current: {total_token_count})",
                 )
                 break
 
             if is_latest and content_token_count > context_compact_threshold:
                 logger.warning(
-                    f"Latest message alone ({content_token_count} tokens) exceeds threshold "
-                    f"{context_compact_threshold}, including it anyway.",
+                    f"Latest message alone ({content_token_count} tokens) "
+                    f"exceeds threshold {context_compact_threshold}, "
+                    f"including it anyway.",
                 )
 
             formatted_parts.append(formatted_content)
@@ -231,7 +257,8 @@ class AsMsgHandler:
 
     @staticmethod
     def validate_tool_ids_alignment(messages: list[Msg]) -> bool:
-        """Check if tool_use_ids and tool_result_ids are properly aligned.
+        """Check if tool_use_ids and tool_result_ids are
+        properly aligned.
 
         Args:
             messages: List of Msg objects to validate.
@@ -253,15 +280,17 @@ class AsMsgHandler:
         return tool_use_ids == tool_result_ids
 
     async def context_check(
-            self,
-            messages: list[Msg],
-            context_compact_threshold: int,
-            context_compact_reserve: int,
+        self,
+        messages: list[Msg],
+        context_compact_threshold: int,
+        context_compact_reserve: int,
     ) -> tuple[list[Msg], list[Msg], bool]:
-        """Check if context exceeds threshold and split messages accordingly.
+        """Check if context exceeds threshold and split
+        messages accordingly.
 
-        Only when total tokens exceed context_compact_threshold, messages are split into
-        messages_to_keep (within reserve limit) and messages_to_compact (older messages).
+        Only when total tokens exceed context_compact_threshold,
+        messages are split into messages_to_keep (within reserve limit)
+        and messages_to_compact (older messages).
 
         Args:
             messages: List of Msg objects to check.
@@ -269,10 +298,14 @@ class AsMsgHandler:
             context_compact_reserve: Token limit for messages to keep.
 
         Returns:
-            A tuple of (messages_to_compact, messages_to_keep, tools_aligned):
-            - messages_to_compact: Older messages that exceed reserve limit
-            - messages_to_keep: Recent messages within the reserve limit
-            - tools_aligned: Whether tool_use and tool_result ids are aligned in messages_to_keep
+            A tuple of (messages_to_compact, messages_to_keep,
+            tools_aligned):
+            - messages_to_compact: Older messages that
+              exceed reserve limit
+            - messages_to_keep: Recent messages within
+              the reserve limit
+            - tools_aligned: Whether tool_use and tool_result
+              ids are aligned in messages_to_keep
         """
         if not messages:
             return [], [], True
@@ -318,17 +351,24 @@ class AsMsgHandler:
             msg, stat = msg_stats[i]
 
             # Check if adding this message would exceed reserve limit
-            if accumulated_tokens + stat.total_tokens > context_compact_reserve:
+            if (
+                accumulated_tokens + stat.total_tokens
+                > context_compact_reserve
+            ):
                 logger.info(
-                    f"Context check: adding message {i} with {stat.total_tokens} tokens would exceed reserve "
-                    f"{context_compact_reserve} (current: {accumulated_tokens})",
+                    f"Context check: adding message {i} with "
+                    f"{stat.total_tokens} tokens would exceed "
+                    f"reserve {context_compact_reserve} "
+                    f"(current: {accumulated_tokens})",
                 )
                 break
 
             # Check tool_result dependencies - if this message has tool_result,
             # we need to ensure the corresponding tool_use is also included
             tool_result_ids = [
-                block.get("id", "") for block in msg.get_content_blocks("tool_result") if block.get("id", "")
+                block.get("id", "")
+                for block in msg.get_content_blocks("tool_result")
+                if block.get("id", "")
             ]
 
             # Calculate extra tokens needed for dependent tool_use messages
@@ -344,10 +384,15 @@ class AsMsgHandler:
                         extra_tokens += dep_stat.total_tokens
 
             # Check if we can fit this message plus its dependencies within reserve
-            if accumulated_tokens + stat.total_tokens + extra_tokens > context_compact_reserve:
+            if (
+                accumulated_tokens + stat.total_tokens + extra_tokens
+                > context_compact_reserve
+            ):
                 logger.info(
-                    f"Context check: message {i} requires {extra_tokens} extra tokens for tool_use dependencies, "
-                    f"total would exceed reserve {context_compact_reserve}",
+                    f"Context check: message {i} requires "
+                    f"{extra_tokens} extra tokens for tool_use "
+                    f"dependencies, total would exceed reserve "
+                    f"{context_compact_reserve}",
                 )
                 break
 
@@ -370,10 +415,12 @@ class AsMsgHandler:
         tools_aligned = self.validate_tool_ids_alignment(messages_to_keep)
 
         logger.info(
-            f"Context check result: {len(messages_to_compact)} messages to compact, "
-            f"{len(messages_to_keep)} messages to keep, "
-            f"total tokens: {total_tokens}, threshold: {context_compact_threshold}, "
-            f"reserve: {context_compact_reserve}, kept tokens: {accumulated_tokens}, "
+            f"Context check result: {len(messages_to_compact)} "
+            f"messages to compact, {len(messages_to_keep)} "
+            f"messages to keep, total tokens: {total_tokens}, "
+            f"threshold: {context_compact_threshold}, "
+            f"reserve: {context_compact_reserve}, "
+            f"kept tokens: {accumulated_tokens}, "
             f"tools_aligned: {tools_aligned}",
         )
 

@@ -1,4 +1,11 @@
-import { Form, Card, Switch, Input, Collapse, Select } from "@agentscope-ai/design";
+import {
+  Form,
+  Card,
+  Switch,
+  Input,
+  Collapse,
+  Select,
+} from "@agentscope-ai/design";
 import { useTranslation } from "react-i18next";
 import { SliderWithValue } from "./SliderWithValue";
 import styles from "../index.module.less";
@@ -29,7 +36,10 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
   );
 
   return (
-    <Card className={styles.formCard} title={t("agentConfig.lightContextTitle")}>
+    <Card
+      className={styles.formCard}
+      title={t("agentConfig.lightContextTitle")}
+    >
       <Form.Item
         label={t("agentConfig.dialogPath")}
         name={["light_context_config", "dialog_path"]}
@@ -111,7 +121,9 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
                         ? compactThreshold.toLocaleString()
                         : ""
                     }
-                    placeholder={t("agentConfig.contextCompactThresholdPlaceholder")}
+                    placeholder={t(
+                      "agentConfig.contextCompactThresholdPlaceholder",
+                    )}
                   />
                 </Form.Item>
 
@@ -125,7 +137,9 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
                   rules={[
                     {
                       required: true,
-                      message: t("agentConfig.contextCompactReserveRatioRequired"),
+                      message: t(
+                        "agentConfig.contextCompactReserveRatioRequired",
+                      ),
                     },
                   ]}
                   tooltip={t("agentConfig.contextCompactReserveRatioTooltip")}
@@ -140,7 +154,9 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
 
                 <Form.Item
                   label={t("agentConfig.contextCompactReserveThreshold")}
-                  tooltip={t("agentConfig.contextCompactReserveThresholdTooltip")}
+                  tooltip={t(
+                    "agentConfig.contextCompactReserveThresholdTooltip",
+                  )}
                 >
                   <Input
                     disabled
@@ -198,7 +214,9 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
                   rules={[
                     {
                       required: true,
-                      message: t("agentConfig.toolResultCompactRecentNRequired"),
+                      message: t(
+                        "agentConfig.toolResultCompactRecentNRequired",
+                      ),
                     },
                   ]}
                   tooltip={t("agentConfig.toolResultCompactRecentNTooltip")}
@@ -221,10 +239,14 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
                   rules={[
                     {
                       required: true,
-                      message: t("agentConfig.toolResultCompactOldThresholdRequired"),
+                      message: t(
+                        "agentConfig.toolResultCompactOldThresholdRequired",
+                      ),
                     },
                   ]}
-                  tooltip={t("agentConfig.toolResultCompactOldThresholdTooltip")}
+                  tooltip={t(
+                    "agentConfig.toolResultCompactOldThresholdTooltip",
+                  )}
                 >
                   <Input
                     placeholder={t(
@@ -243,10 +265,14 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
                   rules={[
                     {
                       required: true,
-                      message: t("agentConfig.toolResultCompactRecentThresholdRequired"),
+                      message: t(
+                        "agentConfig.toolResultCompactRecentThresholdRequired",
+                      ),
                     },
                   ]}
-                  tooltip={t("agentConfig.toolResultCompactRecentThresholdTooltip")}
+                  tooltip={t(
+                    "agentConfig.toolResultCompactRecentThresholdTooltip",
+                  )}
                 >
                   <Input
                     placeholder={t(
@@ -265,10 +291,14 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
                   rules={[
                     {
                       required: true,
-                      message: t("agentConfig.toolResultCompactRetentionDaysRequired"),
+                      message: t(
+                        "agentConfig.toolResultCompactRetentionDaysRequired",
+                      ),
                     },
                   ]}
-                  tooltip={t("agentConfig.toolResultCompactRetentionDaysTooltip")}
+                  tooltip={t(
+                    "agentConfig.toolResultCompactRetentionDaysTooltip",
+                  )}
                 >
                   <SliderWithValue
                     min={1}
@@ -289,7 +319,9 @@ export function LightContextCard({ maxInputLength }: LightContextCardProps) {
                 >
                   <Select
                     mode="tags"
-                    placeholder={t("agentConfig.exemptFileExtensionsPlaceholder")}
+                    placeholder={t(
+                      "agentConfig.exemptFileExtensionsPlaceholder",
+                    )}
                     tokenSeparators={[",", " "]}
                     style={{ width: "100%" }}
                   />

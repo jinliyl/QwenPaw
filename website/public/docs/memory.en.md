@@ -82,40 +82,40 @@ One page per day, appended with the day's work and interactions.
 Memory configuration is located in `agent.json` under `running.reme_light_memory_config`:
 
 | Field                           | Description                                                                        | Default        |
-| -------------------------------- | ---------------------------------------------------------------------------------- | -------------- |
-| `summarize_when_compact`         | Whether to save long-term memory in background during context compaction           | `true`         |
-| `summarize_interval`             | Summarize every N user queries. null disables periodic summarization               | `null`         |
-| `dream_cron`                     | Cron expression for dream-based memory optimization job (empty string to disable)  | `"0 23 * * *"` |
-| `rebuild_memory_index_on_start`  | Whether to clear and rebuild memory search index on startup; false to skip rebuild | `false`        |
-| `recursive_file_watcher`         | Whether to watch memory directory recursively (includes subdirectories)            | `false`        |
+| ------------------------------- | ---------------------------------------------------------------------------------- | -------------- |
+| `summarize_when_compact`        | Whether to save long-term memory in background during context compaction           | `true`         |
+| `summarize_interval`            | Summarize every N user queries. null disables periodic summarization               | `null`         |
+| `dream_cron`                    | Cron expression for dream-based memory optimization job (empty string to disable)  | `"0 23 * * *"` |
+| `rebuild_memory_index_on_start` | Whether to clear and rebuild memory search index on startup; false to skip rebuild | `false`        |
+| `recursive_file_watcher`        | Whether to watch memory directory recursively (includes subdirectories)            | `false`        |
 
 ### Force Memory Search Configuration
 
 Configure in `running.reme_light_memory_config.force_memory_search_config`:
 
-| Field         | Description                                              | Default  |
-| ------------- | -------------------------------------------------------- | -------- |
-| `enabled`     | Whether to force memory search on every conversation turn | `false`  |
-| `max_results` | Maximum results for forced memory search                 | `1`      |
-| `min_score`   | Minimum relevance score threshold for forced search (0.0 ~ 1.0) | `0.1` |
-| `timeout`     | Timeout in seconds for forced memory search              | `10.0`   |
+| Field         | Description                                                     | Default |
+| ------------- | --------------------------------------------------------------- | ------- |
+| `enabled`     | Whether to force memory search on every conversation turn       | `false` |
+| `max_results` | Maximum results for forced memory search                        | `1`     |
+| `min_score`   | Minimum relevance score threshold for forced search (0.0 ~ 1.0) | `0.1`   |
+| `timeout`     | Timeout in seconds for forced memory search                     | `10.0`  |
 
 ### Embedding Configuration (Optional)
 
 Embedding configuration for vector semantic search, located in `running.reme_light_memory_config.embedding_model_config`:
 
-| Field             | Description                                  | Default   |
-| ----------------- | -------------------------------------------- | --------- |
-| `backend`         | Embedding backend type                       | `openai`  |
-| `api_key`         | API Key for the Embedding service            | ``        |
-| `base_url`        | URL of the Embedding service                 | ``        |
-| `model_name`      | Embedding model name                         | ``        |
-| `dimensions`      | Vector dimensions for initializing vector DB | `1024`    |
-| `enable_cache`    | Whether to enable Embedding cache            | `true`    |
-| `use_dimensions`  | Whether to pass dimensions parameter in API  | `false`   |
-| `max_cache_size`  | Maximum Embedding cache entries              | `3000`    |
-| `max_input_length`| Maximum input length per Embedding request   | `8192`    |
-| `max_batch_size`  | Maximum batch size for Embedding requests    | `10`      |
+| Field              | Description                                  | Default  |
+| ------------------ | -------------------------------------------- | -------- |
+| `backend`          | Embedding backend type                       | `openai` |
+| `api_key`          | API Key for the Embedding service            | ``       |
+| `base_url`         | URL of the Embedding service                 | ``       |
+| `model_name`       | Embedding model name                         | ``       |
+| `dimensions`       | Vector dimensions for initializing vector DB | `1024`   |
+| `enable_cache`     | Whether to enable Embedding cache            | `true`   |
+| `use_dimensions`   | Whether to pass dimensions parameter in API  | `false`  |
+| `max_cache_size`   | Maximum Embedding cache entries              | `3000`   |
+| `max_input_length` | Maximum input length per Embedding request   | `8192`   |
+| `max_batch_size`   | Maximum batch size for Embedding requests    | `10`     |
 
 > `use_dimensions` is for cases where some vLLM models don't support the dimensions parameter. Set to `false` to skip it.
 

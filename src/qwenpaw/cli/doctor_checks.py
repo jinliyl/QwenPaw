@@ -572,10 +572,12 @@ def memory_embedding_notes(cfg: Config) -> list[str]:
             emb.api_key,
         ):
             notes.append(
-                f"{agent_id}: running.reme_light_memory_config.force_memory_search_config.enabled "
+                f"{agent_id}: "
+                "reme_light_memory_config.force_memory_search_config.enabled "
                 "is on but no embedding API key is set in "
-                "running.reme_light_memory_config.embedding_model_config.api_key and no common "
-                "OPENAI_/DASHSCOPE_/ANTHROPIC_ API key env was found.",
+                "reme_light_memory_config.embedding_model_config.api_key "
+                "and no common OPENAI_/DASHSCOPE_/ANTHROPIC_ "
+                "API key env was found.",
             )
     return notes
 

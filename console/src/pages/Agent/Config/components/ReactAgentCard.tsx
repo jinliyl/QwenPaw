@@ -16,9 +16,7 @@ const LANGUAGE_OPTIONS = [
   { value: "ru", label: "Русский" },
 ];
 
-const CONTEXT_MANAGER_BACKEND_OPTIONS = [
-  { value: "light", label: "Light" },
-];
+const CONTEXT_MANAGER_BACKEND_OPTIONS = [{ value: "light", label: "Light" }];
 
 const MEMORY_MANAGER_BACKEND_OPTIONS = [
   { value: "ReMeLight", label: "ReMeLight" },

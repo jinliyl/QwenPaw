@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Context manager for agents with compaction support."""
 import asyncio
 import logging
@@ -6,7 +7,7 @@ import sys
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Set
 
 from agentscope.agent import ReActAgent
 from agentscope.message import Msg, TextBlock
@@ -27,6 +28,7 @@ from ..utils import check_valid_messages, get_token_counter
 from ...config.config import load_agent_config
 from ...constant import MEMORY_COMPACT_KEEP_RECENT, TRUNCATION_NOTICE_MARKER
 from ..utils.estimate_token_counter import EstimatedTokenCounter
+
 if TYPE_CHECKING:
     from ..react_agent import QwenPawAgent
 
@@ -80,7 +82,9 @@ class LightContextManager(BaseContextManager):
             Number of files successfully deleted.
         """
         agent_config = load_agent_config(self.agent_id)
-        trc = agent_config.running.light_context_config.tool_result_pruning_config
+        trc = (
+            agent_config.running.light_context_config.tool_result_pruning_config
+        )
         tool_result_dir = Path(self.working_dir) / trc.tool_results_cache
         retention_days = trc.offload_retention_days
 
@@ -96,7 +100,11 @@ class LightContextManager(BaseContextManager):
                 if sys.platform == "win32":
                     ts = stat.st_ctime  # creation time on Windows
                 else:
-                    ts = getattr(stat, "st_birthtime", stat.st_mtime)  # macOS/BSD; Linux fallback to mtime
+                    ts = getattr(
+                        stat,
+                        "st_birthtime",
+                        stat.st_mtime,
+                    )  # macOS/BSD; Linux fallback to mtime
                 if datetime.fromtimestamp(ts) < cutoff:
                     fp.unlink()
                     deleted += 1
@@ -107,7 +115,11 @@ class LightContextManager(BaseContextManager):
                 logger.warning("Failed to delete %s: %s", fp, e)
 
         if deleted or failed:
-            logger.info("Cleaned up %d expired tool result files (%d failed)", deleted, failed)
+            logger.info(
+                "Cleaned up %d expired tool result files (%d failed)",
+                deleted,
+                failed,
+            )
         return deleted
 
     def _truncate_tool_result(
@@ -132,7 +144,11 @@ class LightContextManager(BaseContextManager):
         try:
             # Already truncated content - retruncate with new limit
             if TRUNCATION_NOTICE_MARKER in content:
-                return truncate_text_output(content, max_bytes=max_bytes, encoding=encoding)
+                return truncate_text_output(
+                    content,
+                    max_bytes=max_bytes,
+                    encoding=encoding,
+                )
 
             # Check if content fits within limit (with small slack)
             if len(content.encode(encoding)) <= max_bytes + 100:
@@ -140,7 +156,9 @@ class LightContextManager(BaseContextManager):
 
             # Save full content to file
             agent_config = load_agent_config(self.agent_id)
-            trc = agent_config.running.light_context_config.tool_result_pruning_config
+            trc = (
+                agent_config.running.light_context_config.tool_result_pruning_config
+            )
             tool_result_dir = Path(self.working_dir) / trc.tool_results_cache
             tool_result_dir.mkdir(parents=True, exist_ok=True)
 
@@ -184,7 +202,9 @@ class LightContextManager(BaseContextManager):
             for block in output:
                 if isinstance(block, dict) and block.get("type") == "text":
                     block["text"] = self._truncate_tool_result(
-                        block.get("text", ""), max_bytes, encoding
+                        block.get("text", ""),
+                        max_bytes,
+                        encoding,
                     )
         return output
 
@@ -216,7 +236,8 @@ class LightContextManager(BaseContextManager):
         recent_count = 0
         for msg in reversed(messages):
             if not isinstance(msg.content, list) or not any(
-                isinstance(b, dict) and b.get("type") == "tool_result" for b in msg.content
+                isinstance(b, dict) and b.get("type") == "tool_result"
+                for b in msg.content
             ):
                 break
             recent_count += 1
@@ -227,8 +248,12 @@ class LightContextManager(BaseContextManager):
         try:
             # Load exempt lists from config
             agent_config = load_agent_config(self.agent_id)
-            trc = agent_config.running.light_context_config.tool_result_pruning_config
-            exempt_extensions = set(ext.lower() for ext in trc.exempt_file_extensions)
+            trc = (
+                agent_config.running.light_context_config.tool_result_pruning_config
+            )
+            exempt_extensions = set(
+                ext.lower() for ext in trc.exempt_file_extensions
+            )
             exempt_tools = set(name.lower() for name in trc.exempt_tool_names)
 
             for msg in messages:
@@ -236,7 +261,10 @@ class LightContextManager(BaseContextManager):
                     continue
 
                 for block in msg.content:
-                    if isinstance(block, dict) and block.get("type") == "tool_use":
+                    if (
+                        isinstance(block, dict)
+                        and block.get("type") == "tool_use"
+                    ):
                         tool_id = block.get("id", "")
                         if not tool_id:
                             continue
@@ -266,7 +294,10 @@ class LightContextManager(BaseContextManager):
             max_bytes = recent_max_bytes if is_recent else old_max_bytes
 
             for block in msg.content:
-                if isinstance(block, dict) and block.get("type") == "tool_result":
+                if (
+                    isinstance(block, dict)
+                    and block.get("type") == "tool_result"
+                ):
                     tool_id = block.get("id", "")
                     output = block.get("output")
                     if not output:
@@ -274,18 +305,23 @@ class LightContextManager(BaseContextManager):
 
                     # Use recent_max_bytes for exempt tool results
                     effective_max_bytes = (
-                        recent_max_bytes if tool_id in exempt_tool_ids else max_bytes
+                        recent_max_bytes
+                        if tool_id in exempt_tool_ids
+                        else max_bytes
                     )
-                    block["output"] = self._compact_output(output, effective_max_bytes)
+                    block["output"] = self._compact_output(
+                        output,
+                        effective_max_bytes,
+                    )
 
         return messages
 
     async def _check_context(
-            self,
-            messages: list[Msg],
-            context_compact_threshold: int,
-            context_compact_reserve: int,
-            as_token_counter: EstimatedTokenCounter,
+        self,
+        messages: list[Msg],
+        context_compact_threshold: int,
+        context_compact_reserve: int,
+        as_token_counter: EstimatedTokenCounter,
     ) -> tuple[list[Msg], list[Msg], bool]:
         """Check context size and determine if compaction is needed.
 
@@ -328,19 +364,19 @@ class LightContextManager(BaseContextManager):
         return True
 
     async def _compact_context(
-            self,
-            messages: list[Msg],
-            previous_summary: str = "",
-            extra_instruction: str = "",
-            as_llm: Any = None,
-            as_llm_formatter: Any = None,
-            as_token_counter: EstimatedTokenCounter | None = None,
-            language: str = "en",
-            max_input_length: int = 100000,
-            compact_ratio: float = 0.5,
-            add_thinking_block: bool = True,
-            return_dict: bool = True,
-            **_kwargs,
+        self,
+        messages: list[Msg],
+        previous_summary: str = "",
+        extra_instruction: str = "",
+        as_llm: Any = None,
+        as_llm_formatter: Any = None,
+        as_token_counter: EstimatedTokenCounter | None = None,
+        language: str = "en",
+        max_input_length: int = 100000,
+        compact_ratio: float = 0.5,
+        add_thinking_block: bool = True,
+        return_dict: bool = True,
+        **_kwargs,
     ) -> str | dict:
         """Compact messages into a condensed summary.
 
@@ -362,7 +398,11 @@ class LightContextManager(BaseContextManager):
         """
         if not messages:
             if return_dict:
-                return {"user_message": "", "history_compact": "", "is_valid": False}
+                return {
+                    "user_message": "",
+                    "history_compact": "",
+                    "is_valid": False,
+                }
             return ""
 
         agent_config = load_agent_config(self.agent_id)
@@ -382,7 +422,9 @@ class LightContextManager(BaseContextManager):
             context_compact_threshold=memory_compact_threshold,
             include_thinking=add_thinking_block,
         )
-        after_token_count = await msg_handler.count_str_token(history_formatted_str)
+        after_token_count = await msg_handler.count_str_token(
+            history_formatted_str,
+        )
         logger.info(
             f"Compactor before_token_count={before_token_count} "
             f"after_token_count={after_token_count}",
@@ -391,14 +433,22 @@ class LightContextManager(BaseContextManager):
         if not history_formatted_str:
             logger.warning(f"No history to compact. messages={messages}")
             if return_dict:
-                return {"user_message": "", "history_compact": "", "is_valid": False}
+                return {
+                    "user_message": "",
+                    "history_compact": "",
+                    "is_valid": False,
+                }
             return ""
 
         # Select prompts based on language
         is_zh = language.lower() == "zh"
         system_prompt = SYSTEM_PROMPT_ZH if is_zh else SYSTEM_PROMPT_EN
-        initial_user_msg = INITIAL_USER_MESSAGE_ZH if is_zh else INITIAL_USER_MESSAGE_EN
-        update_user_msg = UPDATE_USER_MESSAGE_ZH if is_zh else UPDATE_USER_MESSAGE_EN
+        initial_user_msg = (
+            INITIAL_USER_MESSAGE_ZH if is_zh else INITIAL_USER_MESSAGE_EN
+        )
+        update_user_msg = (
+            UPDATE_USER_MESSAGE_ZH if is_zh else UPDATE_USER_MESSAGE_EN
+        )
 
         # Create ReActAgent for compaction
         agent = ReActAgent(
@@ -416,9 +466,7 @@ class LightContextManager(BaseContextManager):
                 f"# previous-summary\n{previous_summary}\n\n{update_user_msg}"
             )
         else:
-            user_message: str = (
-                f"# conversation\n{history_formatted_str}\n\n{initial_user_msg}"
-            )
+            user_message = f"# conversation\n{history_formatted_str}\n\n{initial_user_msg}"
 
         if extra_instruction:
             user_message += f"\n\n# extra-instruction\n{extra_instruction}"
@@ -440,7 +488,9 @@ class LightContextManager(BaseContextManager):
         is_valid: bool = self._is_valid_summary(history_compact)
 
         if not is_valid:
-            logger.warning(f"Invalid summary result: {history_compact[:200]}...")
+            logger.warning(
+                f"Invalid summary result: {history_compact[:200]}...",
+            )
             if return_dict:
                 return {
                     "user_message": user_message,
@@ -476,9 +526,9 @@ class LightContextManager(BaseContextManager):
         await agent.print(msg)
 
     async def pre_reply(
-            self,
-            agent: "QwenPawAgent",
-            kwargs: dict[str, Any],
+        self,
+        agent: "QwenPawAgent",
+        kwargs: dict[str, Any],
     ) -> dict[str, Any] | None:
         """Augment ``msg`` with retrieved memory results before reply.
 
@@ -495,7 +545,9 @@ class LightContextManager(BaseContextManager):
             return None
 
         last_msg = msg[-1] if isinstance(msg, list) else msg
-        query = last_msg.get_text_content() if isinstance(last_msg, Msg) else None
+        query = (
+            last_msg.get_text_content() if isinstance(last_msg, Msg) else None
+        )
 
         # Commands are handled before the ReAct loop — skip memory search.
         command_handler = agent.command_handler
@@ -503,7 +555,9 @@ class LightContextManager(BaseContextManager):
             return None
 
         agent_config = load_agent_config(self.agent_id)
-        ms = agent_config.running.reme_light_memory_config.force_memory_search_config
+        ms = (
+            agent_config.running.reme_light_memory_config.force_memory_search_config
+        )
 
         if not ms.enabled:
             return None
@@ -532,9 +586,9 @@ class LightContextManager(BaseContextManager):
         return None
 
     async def pre_reasoning(
-            self,
-            agent: "QwenPawAgent",
-            kwargs: dict[str, Any],
+        self,
+        agent: "QwenPawAgent",
+        kwargs: dict[str, Any],
     ) -> dict[str, Any] | None:
         """Check context size and compact memory when threshold is exceeded.
 
@@ -565,13 +619,15 @@ class LightContextManager(BaseContextManager):
 
             context_compact_threshold = int(
                 running_config.max_input_length
-                * running_config.light_context_config.context_compact_config.compact_threshold_ratio
+                * running_config.light_context_config.context_compact_config.compact_threshold_ratio,
             )
             context_compact_reserve = int(
                 running_config.max_input_length
-                * running_config.light_context_config.context_compact_config.reserve_threshold_ratio
+                * running_config.light_context_config.context_compact_config.reserve_threshold_ratio,
             )
-            left_compact_threshold = context_compact_threshold - str_token_count
+            left_compact_threshold = (
+                context_compact_threshold - str_token_count
+            )
 
             if left_compact_threshold <= 0:
                 logger.warning(
@@ -610,7 +666,7 @@ class LightContextManager(BaseContextManager):
                 keep_length: int = MEMORY_COMPACT_KEEP_RECENT
                 messages_length = len(messages)
                 while keep_length > 0 and not check_valid_messages(
-                        messages[max(messages_length - keep_length, 0):],
+                    messages[max(messages_length - keep_length, 0) :],
                 ):
                     keep_length -= 1
 
@@ -634,7 +690,9 @@ class LightContextManager(BaseContextManager):
                 "🔄 Context compaction started...",
             )
 
-            if running_config.light_context_config.context_compact_config.enabled:
+            if (
+                running_config.light_context_config.context_compact_config.enabled
+            ):
                 cc = running_config.light_context_config.context_compact_config
                 compact_content = await self._compact_context(
                     messages=messages_to_compact,
@@ -683,10 +741,10 @@ class LightContextManager(BaseContextManager):
         return None
 
     async def post_acting(
-            self,
-            agent: "QwenPawAgent",
-            kwargs: dict[str, Any],
-            output: Any,
+        self,
+        agent: "QwenPawAgent",
+        kwargs: dict[str, Any],
+        output: Any,
     ) -> Msg | None:
         """Truncate oversized tool-call results after each acting step."""
         if getattr(agent, self._POST_ACTING_REENTRANCY, False):
@@ -695,7 +753,9 @@ class LightContextManager(BaseContextManager):
 
         try:
             agent_config = load_agent_config(self.agent_id)
-            trc = agent_config.running.light_context_config.tool_result_pruning_config
+            trc = (
+                agent_config.running.light_context_config.tool_result_pruning_config
+            )
             if not trc.enabled:
                 return None
 
@@ -720,10 +780,10 @@ class LightContextManager(BaseContextManager):
         return None
 
     async def post_reply(
-            self,
-            agent: "QwenPawAgent",
-            kwargs: dict[str, Any],
-            output: Any,
+        self,
+        agent: "QwenPawAgent",
+        kwargs: dict[str, Any],
+        output: Any,
     ) -> Msg | None:
         """Summarize memory periodically based on user query count.
 
@@ -735,7 +795,9 @@ class LightContextManager(BaseContextManager):
             return None
 
         agent_config = load_agent_config(self.agent_id)
-        summarize_interval = agent_config.running.reme_light_memory_config.summarize_interval
+        summarize_interval = (
+            agent_config.running.reme_light_memory_config.summarize_interval
+        )
 
         if summarize_interval is None or summarize_interval <= 0:
             return None

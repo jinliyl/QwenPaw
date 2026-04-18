@@ -159,10 +159,10 @@ flowchart LR
     D --> E
 ```
 
-| 消息类型           | 阈值                        | 默认值  | 说明                           |
-| ------------------ | --------------------------- | ------- | ------------------------------ |
+| 消息类型                   | 阈值                           | 默认值  | 说明                           |
+| -------------------------- | ------------------------------ | ------- | ------------------------------ |
 | 最近 `pruning_recent_n` 条 | `pruning_recent_msg_max_bytes` | `50000` | 保留较多内容，同时写入完整文件 |
-| 更早的消息         | `pruning_old_msg_max_bytes`    | `3000`  | 激进截断，已有文件路径继续引用 |
+| 更早的消息                 | `pruning_old_msg_max_bytes`    | `3000`  | 激进截断，已有文件路径继续引用 |
 
 **特殊工具说明：**
 
@@ -267,18 +267,18 @@ graph TB
 
 **`running` 直接字段：**
 
-| 参数                      | 默认值   | 说明                         |
-| ------------------------- | -------- | ---------------------------- |
-| `max_input_length`        | `131072` | 模型上下文窗口大小（tokens） |
-| `context_manager_backend` | `"light"`| 上下文管理器后端类型         |
-| `memory_manager_backend`  | `"ReMeLight"` | 记忆管理器后端类型    |
+| 参数                      | 默认值        | 说明                         |
+| ------------------------- | ------------- | ---------------------------- |
+| `max_input_length`        | `131072`      | 模型上下文窗口大小（tokens） |
+| `context_manager_backend` | `"light"`     | 上下文管理器后端类型         |
+| `memory_manager_backend`  | `"ReMeLight"` | 记忆管理器后端类型           |
 
 **`running.light_context_config` 字段：**
 
-| 参数                       | 默认值    | 说明                             |
-| -------------------------- | --------- | -------------------------------- |
-| `dialog_path`              | `"dialog"`| 对话持久化目录（相对于工作目录） |
-| `token_count_estimate_divisor` | `4.0` | 基于字节的 token 估算除数     |
+| 参数                           | 默认值     | 说明                             |
+| ------------------------------ | ---------- | -------------------------------- |
+| `dialog_path`                  | `"dialog"` | 对话持久化目录（相对于工作目录） |
+| `token_count_estimate_divisor` | `4.0`      | 基于字节的 token 估算除数        |
 
 **`running.light_context_config.context_compact_config` 字段：**
 
@@ -291,13 +291,13 @@ graph TB
 
 **`running.light_context_config.tool_result_pruning_config` 字段：**
 
-| 参数                        | 默认值  | 说明                                       |
-| --------------------------- | ------- | ------------------------------------------ |
-| `enabled`                   | `true`  | 是否修剪超长工具输出                       |
-| `pruning_recent_n`          | `2`     | 最近 N 条消息使用较高阈值                  |
-| `pruning_old_msg_max_bytes` | `3000`  | 旧消息的工具输出字节阈值                   |
+| 参数                           | 默认值  | 说明                                             |
+| ------------------------------ | ------- | ------------------------------------------------ |
+| `enabled`                      | `true`  | 是否修剪超长工具输出                             |
+| `pruning_recent_n`             | `2`     | 最近 N 条消息使用较高阈值                        |
+| `pruning_old_msg_max_bytes`    | `3000`  | 旧消息的工具输出字节阈值                         |
 | `pruning_recent_msg_max_bytes` | `50000` | 最近 `pruning_recent_n` 条消息的工具输出字节阈值 |
-| `offload_retention_days`    | `5`     | 工具输出缓存文件的保留天数（超期自动清理） |
+| `offload_retention_days`       | `5`     | 工具输出缓存文件的保留天数（超期自动清理）       |
 
 **计算关系：**
 

@@ -437,10 +437,11 @@ class ReMeLightMemoryConfig(BaseModel):
 
     summarize_interval: int | None = Field(
         default=None,
-        description="Summarize every N user queries. None disables periodic summarization, "
-                    "1 means summarize after every user query, 2 means every 2 queries, etc. "
-                    "WARNING: Setting too small (e.g., 1-3) may cause high token usage and "
-                    "heavy background task burden. Recommended: 5 or 10.",
+        description="Summarize every N user queries. None disables "
+        "periodic summarization, 1 means summarize after every user "
+        "query, 2 means every 2 queries, etc. WARNING: Setting too "
+        "small (e.g., 1-3) may cause high token usage and heavy "
+        "background task burden. Recommended: 5 or 10.",
     )
 
     daily_memory_dir: str = Field(
@@ -451,7 +452,7 @@ class ReMeLightMemoryConfig(BaseModel):
     dream_cron: str = Field(
         default="0 23 * * *",
         description="Cron expression for dream-based memory optimization job "
-                    "(empty to disable)",
+        "(empty to disable)",
     )
 
     force_memory_search_config: ForceMemorySearchConfig = Field(
@@ -559,7 +560,8 @@ class ToolResultPruningConfig(BaseModel):
 
     tool_results_cache: str = Field(
         default="tool_results",
-        description="Directory name for tool result cache files relative to working_dir",
+        description="Directory name for tool result cache files "
+        "relative to working_dir",
     )
 
     exempt_file_extensions: List[str] = Field(
@@ -588,7 +590,8 @@ class LightContextConfig(BaseModel):
 
     dialog_path: str = Field(
         default="dialog",
-        description="Path for dialog persistence to jsonl files relative to working_dir.",
+        description="Path for dialog persistence to jsonl files "
+        "relative to working_dir.",
     )
 
     token_count_estimate_divisor: float = Field(
@@ -744,7 +747,6 @@ class AgentsRunningConfig(BaseModel):
         default_factory=ReMeLightMemoryConfig,
     )
 
-    
 
 class AgentsLLMRoutingConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")

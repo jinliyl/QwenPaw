@@ -145,7 +145,8 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         # Load and register skills
         self._register_skills(toolkit)
 
-        # Initialize memory_manager and context_manager for use in _build_sys_prompt
+        # Initialize memory_manager and context_manager for use
+        # in _build_sys_prompt
         self.memory_manager = memory_manager
         self.context_manager = context_manager
 
@@ -183,11 +184,16 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
                     tool_fn,
                     namesake_strategy=self._namesake_strategy,
                 )
-            logger.debug("Registered memory tools: %s", [fn.__name__ for fn in memory_tools])
+            logger.debug(
+                "Registered memory tools: %s",
+                [fn.__name__ for fn in memory_tools],
+            )
 
         # Configure context manager memory if available
         if self.context_manager is not None:
-            self.memory: "AgentContext" = self.context_manager.get_agent_context()
+            self.memory: "AgentContext" = (
+                self.context_manager.get_agent_context()
+            )
             logger.debug("Context manager configured")
 
         # Setup command handler
@@ -1144,8 +1150,10 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         )
 
         set_current_workspace_dir(self._workspace_dir)
+        light_ctx = self._agent_config.running.light_context_config
+        pruning_config = light_ctx.tool_result_pruning_config
         set_current_recent_max_bytes(
-            self._agent_config.running.light_context_config.tool_result_pruning_config.pruning_recent_msg_max_bytes,
+            pruning_config.pruning_recent_msg_max_bytes,
         )
 
         # Process file and media blocks in messages

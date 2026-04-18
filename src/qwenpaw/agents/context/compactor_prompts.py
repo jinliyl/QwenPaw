@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Compactor prompt templates for context compression."""
 
 SYSTEM_PROMPT_EN = """\

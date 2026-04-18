@@ -333,50 +333,50 @@ MCP（模型上下文协议）允许智能体连接外部服务（如 Filesystem
 
 **Light 上下文配置（`light_context_config` 对象）：**
 
-| 字段                       | 类型   | 默认值  | 说明                                              |
-| -------------------------- | ------ | ------- | ------------------------------------------------- |
-| `dialog_path`              | string | `"dialog"` | 对话持久化目录（相对于工作目录）              |
-| `token_count_estimate_divisor` | float | `4.0` | 基于字节的 token 估算除数（byte_len / divisor） |
+| 字段                           | 类型   | 默认值     | 说明                                            |
+| ------------------------------ | ------ | ---------- | ----------------------------------------------- |
+| `dialog_path`                  | string | `"dialog"` | 对话持久化目录（相对于工作目录）                |
+| `token_count_estimate_divisor` | float  | `4.0`      | 基于字节的 token 估算除数（byte_len / divisor） |
 
 **Light 上下文压缩配置（`light_context_config.context_compact_config` 对象）：**
 
-| 字段                        | 类型  | 默认值 | 说明                                                         |
-| --------------------------- | ----- | ------ | ------------------------------------------------------------ |
-| `enabled`                   | bool  | `true` | 是否启用自动上下文压缩                                       |
-| `compact_threshold_ratio`   | float | `0.8`  | 触发压缩的阈值比例（相对于 `max_input_length`）              |
-| `reserve_threshold_ratio`   | float | `0.1`  | 压缩时保留的最近上下文比例                                   |
-| `compact_with_thinking_block` | bool | `true` | 压缩时是否包含思考块                                         |
+| 字段                          | 类型  | 默认值 | 说明                                            |
+| ----------------------------- | ----- | ------ | ----------------------------------------------- |
+| `enabled`                     | bool  | `true` | 是否启用自动上下文压缩                          |
+| `compact_threshold_ratio`     | float | `0.8`  | 触发压缩的阈值比例（相对于 `max_input_length`） |
+| `reserve_threshold_ratio`     | float | `0.1`  | 压缩时保留的最近上下文比例                      |
+| `compact_with_thinking_block` | bool  | `true` | 压缩时是否包含思考块                            |
 
 **Light 工具结果修剪配置（`light_context_config.tool_result_pruning_config` 对象）：**
 
-| 字段                        | 类型 | 默认值  | 说明                                       |
-| --------------------------- | ---- | ------- | ------------------------------------------ |
-| `enabled`                   | bool | `true`  | 是否启用工具结果修剪                       |
-| `pruning_recent_n`          | int  | `2`     | 最近 N 条消息使用较高阈值                  |
-| `pruning_old_msg_max_bytes` | int  | `3000`  | 旧消息的工具结果字节阈值                   |
-| `pruning_recent_msg_max_bytes` | int | `50000` | 最近消息的工具结果字节阈值             |
-| `offload_retention_days`    | int  | `5`     | 工具结果文件保留天数                       |
+| 字段                           | 类型 | 默认值  | 说明                       |
+| ------------------------------ | ---- | ------- | -------------------------- |
+| `enabled`                      | bool | `true`  | 是否启用工具结果修剪       |
+| `pruning_recent_n`             | int  | `2`     | 最近 N 条消息使用较高阈值  |
+| `pruning_old_msg_max_bytes`    | int  | `3000`  | 旧消息的工具结果字节阈值   |
+| `pruning_recent_msg_max_bytes` | int  | `50000` | 最近消息的工具结果字节阈值 |
+| `offload_retention_days`       | int  | `5`     | 工具结果文件保留天数       |
 
 **ReMeLight 记忆配置（`reme_light_memory_config` 对象）：**
 
-| 字段                           | 类型   | 默认值         | 说明                                           |
-| ------------------------------ | ------ | -------------- | ---------------------------------------------- |
-| `summarize_when_compact`       | bool   | `true`         | 是否在上下文压缩时启用记忆总结                 |
-| `summarize_interval`           | int \| null | `null`     | 每隔 N 次用户查询进行总结。null 表示禁用周期总结 |
-| `dream_cron`                   | string | `"0 23 * * *"` | 梦境记忆优化任务的 Cron 表达式（空字符串禁用） |
-| `rebuild_memory_index_on_start` | bool  | `false`        | 启动时是否重建记忆搜索索引                     |
-| `recursive_file_watcher`       | bool   | `false`        | 是否递归监控记忆目录                           |
-| `force_memory_search_config`   | object | _（见下方）_   | 强制记忆搜索配置                               |
-| `embedding_model_config`       | object | _（见下方）_   | Embedding 模型配置                             |
+| 字段                            | 类型        | 默认值         | 说明                                             |
+| ------------------------------- | ----------- | -------------- | ------------------------------------------------ |
+| `summarize_when_compact`        | bool        | `true`         | 是否在上下文压缩时启用记忆总结                   |
+| `summarize_interval`            | int \| null | `null`         | 每隔 N 次用户查询进行总结。null 表示禁用周期总结 |
+| `dream_cron`                    | string      | `"0 23 * * *"` | 梦境记忆优化任务的 Cron 表达式（空字符串禁用）   |
+| `rebuild_memory_index_on_start` | bool        | `false`        | 启动时是否重建记忆搜索索引                       |
+| `recursive_file_watcher`        | bool        | `false`        | 是否递归监控记忆目录                             |
+| `force_memory_search_config`    | object      | _（见下方）_   | 强制记忆搜索配置                                 |
+| `embedding_model_config`        | object      | _（见下方）_   | Embedding 模型配置                               |
 
 **强制记忆搜索配置（`reme_light_memory_config.force_memory_search_config` 对象）：**
 
-| 字段         | 类型  | 默认值 | 说明                                               |
-| ------------ | ----- | ------ | -------------------------------------------------- |
-| `enabled`    | bool  | `false`| 是否在每轮对话时强制执行记忆搜索                   |
-| `max_results`| int   | `1`    | 强制搜索时最多返回的结果数                         |
-| `min_score`  | float | `0.1`  | 强制搜索时的最低相关性分数阈值（0.0 - 1.0）        |
-| `timeout`    | float | `10.0` | 强制搜索超时时间（秒）                             |
+| 字段          | 类型  | 默认值  | 说明                                        |
+| ------------- | ----- | ------- | ------------------------------------------- |
+| `enabled`     | bool  | `false` | 是否在每轮对话时强制执行记忆搜索            |
+| `max_results` | int   | `1`     | 强制搜索时最多返回的结果数                  |
+| `min_score`   | float | `0.1`   | 强制搜索时的最低相关性分数阈值（0.0 - 1.0） |
+| `timeout`     | float | `10.0`  | 强制搜索超时时间（秒）                      |
 
 **Embedding 配置（`reme_light_memory_config.embedding_model_config` 对象）：**
 
