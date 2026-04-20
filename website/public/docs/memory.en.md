@@ -31,6 +31,7 @@ Long-term memory management includes the following capabilities:
 | **File Watching**      | Monitors file changes via `watchfile`, asynchronously updating the local database (semantic index & vector index)  |
 | **Semantic Search**    | Recalls relevant memories by semantics using vector embeddings + BM25 hybrid search                                |
 | **File Reading**       | Reads the corresponding Memory Markdown files directly via file tools, loading on demand to keep the context lean  |
+| **Dream Optimization** | Automatically optimizes MEMORY.md at scheduled intervals, removing redundancy and preserving high-quality memories |
 
 ---
 
@@ -53,7 +54,7 @@ graph LR
 Stores long-lasting, rarely changing key information.
 
 - **Location**: `{working_dir}/MEMORY.md`
-- **Purpose**: Stores decisions, preferences, and persistent facts
+- **Purpose**: Stores decisions, preferences, persistent facts and reusable experiences
 - **Updates**: Written by the Agent via `write` / `edit` file tools
 
 ### memory/YYYY-MM-DD.md (Daily Log)
@@ -67,11 +68,25 @@ One page per day, appended with the day's work and interactions.
 
 ### When to Write Memory?
 
-| Information Type                         | Write Target              | Method                 | Example                                                |
-| ---------------------------------------- | ------------------------- | ---------------------- | ------------------------------------------------------ |
-| Decisions, preferences, persistent facts | `MEMORY.md`               | `write` / `edit` tools | "Project uses Python 3.12", "Prefers pytest framework" |
-| Daily notes, runtime context             | `memory/YYYY-MM-DD.md`    | `write` / `edit` tools | "Fixed login bug today", "Deployed v2.1"               |
-| User says "remember this"                | Write to file immediately | `write` tool           | Do not only save in memory!                            |
+| Information Type                         | Write Target              | Method                 | Example                                                                |
+| ---------------------------------------- | ------------------------- | ---------------------- | ---------------------------------------------------------------------- |
+| Decisions, preferences, persistent facts | `MEMORY.md`               | `write` / `edit` tools | "Project uses Python 3.12", "Prefers pytest framework"                 |
+| Daily notes, runtime context             | `memory/YYYY-MM-DD.md`    | `write` / `edit` tools | "Fixed login bug today", "Deployed v2.1"                               |
+| User says "remember this"                | Write to file immediately | `write` tool           | Do not only save in memory!                                            |
+| Reusable experiences\*\*                 | `MEMORY.md`               | `write` / `edit` tools | Core knowledge distilled from daily records through Dream optimization |
+
+---
+
+## 🌙 Dream Optimization Mechanism
+
+**Dream Optimization** is CoPaw's automatic memory consolidation feature that runs at a scheduled time (default: 23:00 daily). This feature automatically distills **core business decisions, confirmed user preferences, and high-value reusable experiences** from daily records into MEMORY.md using four key principles:
+
+- **Extreme Minimalism**: Removes routine logs and temporary details
+- **State Overwrite**: Replaces outdated information with new states
+- **Inductive Consolidation**: Merges fragmented rules into universal principles
+- **Deprecation**: Deletes proven-false or obsolete content
+
+Controlled by the `dream_cron` configuration option (default `"0 23 * * *"`). Set to empty string to disable.
 
 ---
 
