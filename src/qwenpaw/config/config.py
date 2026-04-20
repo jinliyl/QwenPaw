@@ -443,7 +443,7 @@ class AutoMemorySearchConfig(BaseModel):
     )
 
     max_results: int = Field(
-        default=1,
+        default=2,
         ge=1,
         description=(
             "Maximum number of results to return when auto memory"
