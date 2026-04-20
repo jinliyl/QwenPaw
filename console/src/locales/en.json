@@ -1128,7 +1128,7 @@
     "dreamCronTooltip": "Cron expression for periodically optimizing long-term memories through dream state (leave empty to disable)",
     "dreamCronPlaceholder": "0 23 * * *",
     "autoMemorySearch": "Auto Memory Search (beta)",
-    "autoMemorySearchTooltip": "Auto memory search to run on every conversation turn. Each query will retrieve relevant memories, helping QwenPaw understand you better — but this increases token consumption. Note: enabling auto memory search will break the KV cache, reducing cache hit rate. Use with caution.",
+    "autoMemorySearchTooltip": "Auto memory search to run on every conversation turn. Each query will automatically invoke memory search capabilities, helping QwenPaw understand you better — but this increases token consumption.",
     "autoMaxResults": "Auto Search Max Results",
     "autoMaxResultsTooltip": "Maximum number of results returned when auto memory search is enabled",
     "autoMaxResultsRequired": "Max results is required",

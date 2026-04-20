@@ -77,7 +77,7 @@ class BaseMemoryManager(ABC):
         """
 
     @abstractmethod
-    async def summarize(self, messages: list[Msg], **kwargs) -> str:
+    async def summarize(self, messages: list[Msg], **kwargs) -> Any:
         """Summarize conversation messages and persist to memory.
 
         Args:
@@ -85,7 +85,7 @@ class BaseMemoryManager(ABC):
             **kwargs: Implementation-specific options.
 
         Returns:
-            The generated summary string.
+            Implementation-specific result.
         """
 
     @abstractmethod
@@ -93,7 +93,7 @@ class BaseMemoryManager(ABC):
         self,
         messages: list[Msg] | Msg,
         **kwargs,
-    ) -> list[Msg]:
+    ) -> Any:
         """Retrieve relevant memory based on the given messages.
 
         Args:
@@ -101,7 +101,7 @@ class BaseMemoryManager(ABC):
             **kwargs: Implementation-specific options.
 
         Returns:
-            Retrieved memory messages.
+            Implementation-specific result.
         """
 
     @abstractmethod

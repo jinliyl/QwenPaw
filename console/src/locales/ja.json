@@ -1051,7 +1051,7 @@
     "dreamCronTooltip": "ドリーム状態を通じて定期的に長期記憶を最適化するためのCron式（空欄で無効化）",
     "dreamCronPlaceholder": "0 23 * * *",
     "autoMemorySearch": "自動記憶検索(beta)",
-    "autoMemorySearchTooltip": "毎回の会話で記憶検索を自動実行します。各クエリで関連する記憶を取得し、QwenPawがあなたをより理解できますが、トークン消費が増加します。注意：自動記憶検索を有効にすると KV キャッシュが無効になり、キャッシュヒット率が低下します。慎重に有効にしてください。",
+    "autoMemorySearchTooltip": "毎回の会話で記憶検索を自動実行します。各クエリで自動的に記憶検索機能を呼び出し、QwenPawがあなたをより理解できますが、トークン消費が増加します。",
     "autoMaxResults": "自動検索の最大結果数",
     "autoMaxResultsTooltip": "自動記憶検索が有効な場合に返される最大結果数",
     "autoMaxResultsRequired": "最大結果数は必須です",

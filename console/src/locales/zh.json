@@ -1102,7 +1102,7 @@
     "dreamCronTooltip": "设置梦境任务自动整理和优化长期记忆（留空则禁用）",
     "dreamCronPlaceholder": "0 23 * * *",
     "autoMemorySearch": "自动记忆搜索(beta)",
-    "autoMemorySearchTooltip": "每轮对话都自动触发记忆搜索。每次 query 进来都会调用记忆，让 QwenPaw 更懂你，但会增加 token 消耗。注意：自动记忆搜索会破坏 KV Cache，造成缓存命中率降低，请谨慎开启。",
+    "autoMemorySearchTooltip": "每轮对话都自动触发记忆搜索。每次 query 进来都会自动调用记忆搜索能力，让 QwenPaw 更懂你，但会增加 token 消耗。",
     "autoMaxResults": "自动搜索最大结果数",
     "autoMaxResultsTooltip": "自动记忆搜索时返回的最大结果数",
     "autoMaxResultsRequired": "最大结果数为必填项",
