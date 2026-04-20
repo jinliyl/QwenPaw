@@ -889,17 +889,23 @@ class LightContextManager(BaseContextManager):
 
             memory = agent.memory
             # memory.content is list[tuple[Msg, marks]]
-            user_msg_count = sum(
-                1 for msg, _ in memory.content if msg.role == "user"
-            )
+            # Find indices of user messages to locate recent interval
+            user_msg_indices = [
+                i for i, (msg, _) in enumerate(memory.content)
+                if msg.role == "user"
+            ]
 
             if (
-                user_msg_count > 0
-                and user_msg_count % auto_memory_interval == 0
+                len(user_msg_indices) >= auto_memory_interval
+                and len(user_msg_indices) % auto_memory_interval == 0
             ):
-                messages = await memory.get_memory(prepend_summary=False)
-                if messages:
-                    memory_manager.add_summarize_task(messages=messages)
+                # Get messages from the start of recent interval
+                start_index = user_msg_indices[-auto_memory_interval]
+                recent_messages = [
+                    msg for msg, _ in memory.content[start_index:]
+                ]
+                if recent_messages:
+                    memory_manager.add_summarize_task(messages=recent_messages)
         except Exception as e:
             logger.warning("post_reply hook failed: %s", e)
 
