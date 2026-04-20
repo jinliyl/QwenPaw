@@ -476,6 +476,7 @@ class ReMeLightMemoryManager(BaseMemoryManager):
             toolkit=self.summary_toolkit,
             formatter=formatter,
         )
+        dream_agent.set_console_output_enabled(False)
 
         user_msg = Msg(
             name="dream",
