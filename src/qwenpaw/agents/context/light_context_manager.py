@@ -46,7 +46,7 @@ class LightContextManager(BaseContextManager):
     Handles conversation context compaction and the agent context object.
 
     Responsibilities:
-    - Tool-result compaction via _compact_tool_result()
+    - Tool-result pruning via _prune_tool_result()
     - Context-size checking via _check_context()
     - Message compaction via _compact_context()
     - Agent context retrieval via get_agent_context()
@@ -193,21 +193,21 @@ class LightContextManager(BaseContextManager):
             encoding=encoding,
         )
 
-    def _compact_output(
+    def _prune_output(
         self,
         output: str | list[dict],
         max_bytes: int,
         encoding: str = "utf-8",
     ) -> str | list[dict]:
-        """Compact output by truncating to max_bytes.
+        """Prune output by truncating to max_bytes.
 
         Args:
-            output: The output to compact (str or list[dict]).
+            output: The output to prune (str or list[dict]).
             max_bytes: Maximum bytes allowed.
             encoding: Character encoding.
 
         Returns:
-            Compacted output.
+            Pruned output.
         """
         if isinstance(output, str):
             return self._truncate_tool_result(output, max_bytes, encoding)
@@ -221,7 +221,7 @@ class LightContextManager(BaseContextManager):
                     )
         return output
 
-    async def _compact_tool_result(
+    async def _prune_tool_result(
         self,
         messages: list[Msg],
         recent_n: int = 1,
@@ -299,7 +299,7 @@ class LightContextManager(BaseContextManager):
         except Exception as e:
             logger.warning("Failed to detect exempt tool ids: %s", e)
 
-        # Compact tool_result blocks
+        # Prune tool_result blocks
         for idx, msg in enumerate(messages):
             if not isinstance(msg.content, list):
                 continue
@@ -322,7 +322,7 @@ class LightContextManager(BaseContextManager):
                         if tool_id in exempt_tool_ids
                         else max_bytes
                     )
-                    block["output"] = self._compact_output(
+                    block["output"] = self._prune_output(
                         output,
                         effective_max_bytes,
                     )
@@ -628,7 +628,7 @@ class LightContextManager(BaseContextManager):
         """Check context size and compact memory when threshold is exceeded.
 
         Mirrors the compaction logic from ``MemoryCompactionHook`` but
-        excludes tool-result truncation, which is handled by
+        excludes tool-result pruning, which is handled by
         ``post_acting``.
         """
 
@@ -788,7 +788,7 @@ class LightContextManager(BaseContextManager):
 
             memory = agent.memory
             messages = await memory.get_memory(prepend_summary=False)
-            await self._compact_tool_result(
+            await self._prune_tool_result(
                 messages=messages,
                 recent_n=trc.pruning_recent_n,
                 old_max_bytes=trc.pruning_old_msg_max_bytes,
@@ -797,7 +797,7 @@ class LightContextManager(BaseContextManager):
             )
         except Exception as e:
             logger.exception(
-                "Failed to compact tool results in post_acting hook: %s",
+                "Failed to prune tool results in post_acting hook: %s",
                 e,
                 exc_info=True,
             )

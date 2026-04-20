@@ -597,7 +597,7 @@ class ToolResultPruningConfig(BaseModel):
 
     enabled: bool = Field(
         default=True,
-        description="Whether to enable tool result compaction",
+        description="Whether to enable tool result pruning",
     )
 
     pruning_recent_n: int = Field(
@@ -610,16 +610,14 @@ class ToolResultPruningConfig(BaseModel):
     pruning_old_msg_max_bytes: int = Field(
         default=3000,
         ge=100,
-        description=(
-            "Byte threshold for old messages in tool result compaction"
-        ),
+        description=("Byte threshold for old messages in tool result pruning"),
     )
 
     pruning_recent_msg_max_bytes: int = Field(
         default=50000,
         ge=1000,
         description=(
-            "Byte threshold for recent messages in tool result compaction"
+            "Byte threshold for recent messages in tool result pruning"
         ),
     )
 

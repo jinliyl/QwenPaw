@@ -420,7 +420,7 @@ class QwenPawAgent(ToolGuardMixin, ReActAgent):
         )
         logger.debug("Registered bootstrap hook")
 
-        # Context manager hooks - delegate compaction / tool-result trimming
+        # Context manager hooks - delegate compaction / tool-result pruning
         # to the context manager's lifecycle methods
         if self.context_manager is not None:
             self.register_instance_hook(

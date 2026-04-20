@@ -23,7 +23,7 @@ class BaseContextManager(ABC):
     conversation context window, including:
     - **Compaction**: condensing older messages into a rolling summary when
       the context approaches the model's token limit.
-    - **Tool-result truncation**: trimming oversized tool outputs inline so
+    - **Tool-result pruning**: trimming oversized tool outputs inline so
       they do not exhaust the context budget unnecessarily.
     - **Context health checks**: deciding whether and what to compact before
       each agent step.
