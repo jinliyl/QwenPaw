@@ -16,7 +16,7 @@ export const CONTEXT_MANAGER_BACKEND_MAPPINGS: Record<
   light: {
     configField: "light_context_config",
     component: LightContextCard,
-    label: "Light Context",
+    label: "light",
     tabKey: "lightContext",
   },
 };
@@ -28,7 +28,7 @@ export const MEMORY_MANAGER_BACKEND_MAPPINGS: Record<
   ReMeLight: {
     configField: "reme_light_memory_config",
     component: ReMeLightMemoryCard,
-    label: "ReMe Light Memory",
+    label: "ReMeLight",
     tabKey: "remeLightMemory",
   },
 };

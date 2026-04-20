@@ -4,6 +4,10 @@ import { useTranslation } from "react-i18next";
 import api from "../../../api";
 import type { AgentsRunningConfig } from "../../../api/types";
 import { useAppMessage } from "../../../hooks/useAppMessage";
+import {
+  CONTEXT_MANAGER_BACKEND_MAPPINGS,
+  MEMORY_MANAGER_BACKEND_MAPPINGS,
+} from "../../../constants/backendMappings";
 
 export function useAgentConfig() {
   const { t } = useTranslation();
@@ -26,6 +30,14 @@ export function useAgentConfig() {
         api.getAgentLanguage(),
         api.getUserTimezone(),
       ]);
+      const contextBackend =
+        config.context_manager_backend in CONTEXT_MANAGER_BACKEND_MAPPINGS
+          ? config.context_manager_backend
+          : "light";
+      const memoryBackend =
+        config.memory_manager_backend in MEMORY_MANAGER_BACKEND_MAPPINGS
+          ? config.memory_manager_backend
+          : "ReMeLight";
       form.setFieldsValue({
         max_iters: config.max_iters,
         auto_continue_on_text_only: config.auto_continue_on_text_only ?? false,
@@ -40,9 +52,9 @@ export function useAgentConfig() {
         llm_acquire_timeout: config.llm_acquire_timeout,
         max_input_length: config.max_input_length,
         history_max_length: config.history_max_length,
-        context_manager_backend: config.context_manager_backend,
+        context_manager_backend: contextBackend,
         light_context_config: config.light_context_config,
-        memory_manager_backend: config.memory_manager_backend,
+        memory_manager_backend: memoryBackend,
         reme_light_memory_config: config.reme_light_memory_config,
       });
       setLanguage(langResp.language);
