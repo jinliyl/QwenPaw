@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """ReMeLight-backed memory manager for agents."""
 import importlib.metadata
+import json
 import logging
 import platform
 import shutil
+import uuid
 from datetime import datetime
 from pathlib import Path
 
 from agentscope.agent import ReActAgent
-from agentscope.message import Msg, TextBlock
+from agentscope.message import Msg, TextBlock, ToolResultBlock, ToolUseBlock
 from agentscope.tool import Toolkit, ToolResponse
 
 from .base_memory_manager import BaseMemoryManager, memory_registry
@@ -337,15 +339,20 @@ class ReMeLightMemoryManager(BaseMemoryManager):
     async def retrieve(
         self,
         messages: list[Msg] | Msg,
+        agent_name: str = "",
         **_kwargs,
-    ) -> str:
-        """Retrieve relevant memory based on the given messages.
+    ) -> dict | None:
+        """Retrieve relevant memory and return updated kwargs dict.
 
-        Builds a query (≤ 100 chars) from the newest message text, runs
-        ``memory_search``, and returns the concatenated text of all results.
-        Returns an empty string when no results are found.
+        Args:
+            messages: One or more conversation messages used as the query.
+            agent_name: Agent name for constructing Msg.
+
+        Returns:
+            None: No relevant memory found, caller should not update kwargs.
+            dict: {"msg": msgs + [assistant_msg, tool_result_msg]} to merge
+                with kwargs via {**kwargs, **result}.
         """
-
         msgs: list[Msg] = (
             [messages] if isinstance(messages, Msg) else list(messages)
         )
@@ -368,7 +375,7 @@ class ReMeLightMemoryManager(BaseMemoryManager):
 
         query = " ".join(query_parts).strip()
         if not query:
-            return ""
+            return None
 
         agent_config = load_agent_config(self.agent_id)
         reme_cfg = agent_config.running.reme_light_memory_config
@@ -389,11 +396,56 @@ class ReMeLightMemoryManager(BaseMemoryManager):
                 for b in content_blocks
                 if isinstance(b, dict) and b.get("text")
             )
-            return text_content
+            if not text_content:
+                return None
+
+            # Construct assistant_msg and tool_result_msg
+            _id = uuid.uuid4().hex
+            tool_use_input = {
+                "query": query,
+                "max_results": max_results,
+                "min_score": min_score,
+            }
+
+            assistant_msg = Msg(
+                name=agent_name,
+                role="assistant",
+                content=[
+                    TextBlock(
+                        type="text",
+                        text="Searching memory for relevant context...",
+                    ),
+                    ToolUseBlock(
+                        type="tool_use",
+                        id=_id,
+                        name="memory_search",
+                        input=tool_use_input,
+                        raw_input=json.dumps(
+                            tool_use_input,
+                            ensure_ascii=False,
+                        ),
+                    ),
+                ],
+            )
+
+            tool_result_msg = Msg(
+                name=agent_name,
+                role="system",
+                content=[
+                    ToolResultBlock(
+                        type="tool_result",
+                        id=_id,
+                        name="memory_search",
+                        output=[TextBlock(type="text", text=text_content)],
+                    ),
+                ],
+            )
+
+            return {"msg": msgs + [assistant_msg, tool_result_msg]}
 
         except Exception as e:
             logger.exception(f"memory_search failed: {e}")
-            return ""
+            return None
 
     async def dream(self, **kwargs) -> None:
         """Run one dream-based memory optimization pass."""
