@@ -891,7 +891,8 @@ class LightContextManager(BaseContextManager):
             # memory.content is list[tuple[Msg, marks]]
             # Find indices of user messages to locate recent interval
             user_msg_indices = [
-                i for i, (msg, _) in enumerate(memory.content)
+                i
+                for i, (msg, _) in enumerate(memory.content)
                 if msg.role == "user"
             ]
 

@@ -42,6 +42,8 @@ class AgentMdManager:
     def list_working_mds(self) -> list[dict]:
         """List all markdown files with metadata in the working dir.
 
+        Returns files sorted by modification time descending (newest first).
+
         Returns:
             list[dict]: A list of dictionaries, each containing:
                 - filename: name of the file (with .md extension)
@@ -50,6 +52,9 @@ class AgentMdManager:
                 - modified_time: file modification timestamp
         """
         md_files = list(self.working_dir.glob("*.md"))
+        # Sort by modification time descending (newest first)
+        md_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+
         result = []
         for f in md_files:
             if f.is_file():
@@ -95,6 +100,8 @@ class AgentMdManager:
     def list_memory_mds(self) -> list[dict]:
         """List all markdown files with metadata in the memory dir.
 
+        Returns files sorted by modification time descending (newest first).
+
         Returns:
             list[dict]: A list of dictionaries, each containing:
                 - filename: name of the file (with .md extension)
@@ -103,6 +110,9 @@ class AgentMdManager:
                 - modified_time: file modification timestamp
         """
         md_files = list(self.memory_dir.glob("*.md"))
+        # Sort by modification time descending (newest first)
+        md_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+
         result = []
         for f in md_files:
             if f.is_file():
