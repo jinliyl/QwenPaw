@@ -380,15 +380,6 @@ class AutoMemorySearchConfig(BaseModel):
         ),
     )
 
-    timeout: float = Field(
-        default=10.0,
-        gt=0.0,
-        description=(
-            "Timeout in seconds for auto memory search. Increase this value"
-            " when using remote embedding APIs that may have higher latency."
-        ),
-    )
-
 
 class EmbeddingModelConfig(BaseModel):
     """Embedding model configuration."""

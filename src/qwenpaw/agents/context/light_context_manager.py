@@ -2,7 +2,7 @@
 # pylint: disable=too-many-nested-blocks,too-many-branches
 # pylint: disable=too-many-return-statements,too-many-statements
 """Context manager for agents with compaction support."""
-import asyncio
+import json
 import logging
 import os
 import sys
@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Set
 
 from agentscope.agent import ReActAgent
-from agentscope.message import Msg, TextBlock
+from agentscope.message import Msg, TextBlock, ToolResultBlock, ToolUseBlock
 
 from .agent_context import AgentContext
 from .as_msg_handler import AsMsgHandler
@@ -565,12 +565,10 @@ class LightContextManager(BaseContextManager):
         """Augment ``msg`` with retrieved memory results before reply.
 
         When ``auto_memory_search_config.enabled`` is enabled, calls
-        ``memory_manager.retrieve()`` which appends a synthetic
-        tool-use / tool-result message pair carrying the relevant memory
-        snippets.  The augmented message list is returned as modified
-        kwargs so ``reply()`` receives and stores the full context.
-        Commands are skipped because ``reply()`` returns early before the
-        ReAct loop runs.
+        ``memory_manager.retrieve()`` which returns a string of memory
+        snippets. If non-empty, appends a synthetic tool-use / tool-result
+        message pair carrying the content. Commands are skipped because
+        ``reply()`` returns early before the ReAct loop runs.
         """
         msg = kwargs.get("msg")
         if msg is None:
@@ -600,21 +598,74 @@ class LightContextManager(BaseContextManager):
         msgs = [msg] if isinstance(msg, Msg) else list(msg)
 
         try:
-            augmented = await asyncio.wait_for(
-                memory_manager.retrieve(msgs),
-                timeout=ms.timeout,
-            )
+            retrieved_text = await memory_manager.retrieve(msgs)
         except BaseException as e:
             logger.warning(
-                "memory_manager.retrieve failed or timed out, skipping e=%s",
+                "memory_manager.retrieve failed, skipping e=%s",
                 e,
             )
             return None
 
-        if len(augmented) > len(msgs):
-            return {**kwargs, "msg": augmented}
+        if not retrieved_text:
+            return None
 
-        return None
+        # Build query from the newest messages (same logic as retrieve)
+        query_parts: list[str] = []
+        total = 0
+        for m in reversed(msgs):
+            remaining = 100 - total
+            if remaining <= 0:
+                break
+            text = (m.get_text_content() or "").strip()
+            if not text:
+                continue
+            chunk = text[:remaining]
+            query_parts.insert(0, chunk)
+            total += len(chunk)
+        query_str = " ".join(query_parts).strip() or query or ""
+
+        _id = uuid.uuid4().hex
+        max_results = ms.max_results
+        min_score = ms.min_score
+        tool_use_input = {
+            "query": query_str,
+            "max_results": max_results,
+            "min_score": min_score,
+        }
+
+        assistant_msg = Msg(
+            name=agent.name,
+            role="assistant",
+            content=[
+                TextBlock(
+                    type="text",
+                    text="Let me search memory based on the user's query.",
+                ),
+                ToolUseBlock(
+                    type="tool_use",
+                    id=_id,
+                    name="memory_search",
+                    input=tool_use_input,
+                    raw_input=json.dumps(tool_use_input, ensure_ascii=False),
+                ),
+            ],
+        )
+
+        content_blocks = [TextBlock(type="text", text=retrieved_text)]
+        tool_result_msg = Msg(
+            name=agent.name,
+            role="system",
+            content=[
+                ToolResultBlock(
+                    type="tool_result",
+                    id=_id,
+                    name="memory_search",
+                    output=content_blocks,
+                ),
+            ],
+        )
+
+        return {**kwargs, "msg": msgs + [assistant_msg, tool_result_msg]}
 
     async def pre_reasoning(
         self,

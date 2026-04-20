@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 """ReMeLight-backed memory manager for agents."""
 import importlib.metadata
-import json
 import logging
 import platform
 import shutil
-import uuid
 from datetime import datetime
 from pathlib import Path
 
 from agentscope.agent import ReActAgent
 from agentscope.message import Msg, TextBlock
-from agentscope.message import ToolResultBlock, ToolUseBlock
 from agentscope.tool import Toolkit, ToolResponse
 
 from .base_memory_manager import BaseMemoryManager, memory_registry
@@ -341,14 +338,12 @@ class ReMeLightMemoryManager(BaseMemoryManager):
         self,
         messages: list[Msg] | Msg,
         **_kwargs,
-    ) -> list[Msg]:
+    ) -> str:
         """Retrieve relevant memory based on the given messages.
 
         Builds a query (≤ 100 chars) from the newest message text, runs
-        ``memory_search``, and—when results are found—appends a synthetic
-        assistant tool-use message and a tool-result message to the original
-        messages. Returns the original messages unchanged when no results are
-        found.
+        ``memory_search``, and returns the concatenated text of all results.
+        Returns an empty string when no results are found.
         """
 
         msgs: list[Msg] = (
@@ -373,7 +368,7 @@ class ReMeLightMemoryManager(BaseMemoryManager):
 
         query = " ".join(query_parts).strip()
         if not query:
-            return msgs
+            return ""
 
         agent_config = load_agent_config(self.agent_id)
         reme_cfg = agent_config.running.reme_light_memory_config
@@ -388,45 +383,12 @@ class ReMeLightMemoryManager(BaseMemoryManager):
         )
         content_blocks = result.content
 
-        if not any(b.text for b in content_blocks if hasattr(b, "text")):
-            return msgs
-
-        _id = uuid.uuid4().hex
-        tool_use_input = {
-            "query": query,
-            "max_results": max_results,
-            "min_score": min_score,
-        }
-        assistant_msg = Msg(
-            name=self.agent_id,
-            role="assistant",
-            content=[
-                TextBlock(
-                    type="text",
-                    text="Let me search memory based on the user's query.",
-                ),
-                ToolUseBlock(
-                    type="tool_use",
-                    id=_id,
-                    name="memory_search",
-                    input=tool_use_input,
-                    raw_input=json.dumps(tool_use_input, ensure_ascii=False),
-                ),
-            ],
+        text_content = "\n".join(
+            b.get("text", "")
+            for b in content_blocks
+            if isinstance(b, dict) and b.get("text")
         )
-        tool_result_msg = Msg(
-            name=self.agent_id,
-            role="system",
-            content=[
-                ToolResultBlock(
-                    type="tool_result",
-                    id=_id,
-                    name="memory_search",
-                    output=content_blocks,
-                ),
-            ],
-        )
-        return msgs + [assistant_msg, tool_result_msg]
+        return text_content
 
     async def dream(self, **kwargs) -> None:
         """Run one dream-based memory optimization pass."""
