@@ -30,7 +30,7 @@ export interface LightContextConfig {
   tool_result_pruning_config: ToolResultPruningConfig;
 }
 
-export interface ForceMemorySearchConfig {
+export interface AutoMemorySearchConfig {
   enabled: boolean;
   max_results: number;
   min_score: number;
@@ -53,7 +53,7 @@ export interface ReMeLightMemoryConfig {
   summarize_when_compact: boolean;
   summarize_interval: number | null;
   dream_cron: string;
-  force_memory_search_config: ForceMemorySearchConfig;
+  auto_memory_search_config: AutoMemorySearchConfig;
   embedding_model_config: EmbeddingModelConfig;
   rebuild_memory_index_on_start: boolean;
   recursive_file_watcher: boolean;

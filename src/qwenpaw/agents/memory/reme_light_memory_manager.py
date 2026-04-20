@@ -377,7 +377,7 @@ class ReMeLightMemoryManager(BaseMemoryManager):
 
         agent_config = load_agent_config(self.agent_id)
         reme_cfg = agent_config.running.reme_light_memory_config
-        ms = reme_cfg.force_memory_search_config
+        ms = reme_cfg.auto_memory_search_config
         max_results = ms.max_results
         min_score = ms.min_score
 

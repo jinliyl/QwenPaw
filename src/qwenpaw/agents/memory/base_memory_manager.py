@@ -172,9 +172,9 @@ class BaseMemoryManager(ABC):
         if not self._worker_task.done():
             return
 
-        # Worker finished - update any tasks still pending or running
+        # Worker finished - update any running tasks
         for task_id, info in self._summary_task_info.items():
-            if info["status"] in ("pending", "running"):
+            if info["status"] == "running":
                 if self._worker_task.cancelled():
                     info["status"] = "cancelled"
                     logger.info(
@@ -192,8 +192,9 @@ class BaseMemoryManager(ABC):
 
         Each dict contains:
             - task_id: Unique identifier
-            - start_time: When the task was started
-            - status: "running", "completed", "failed", or "cancelled"
+            - start_time: When the task was enqueued
+            - status: "pending", "running", "completed",
+                "failed", or "cancelled"
             - result: Summary result (if completed)
             - error: Error message (if failed)
 

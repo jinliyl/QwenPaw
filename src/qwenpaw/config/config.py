@@ -351,21 +351,21 @@ class AgentsDefaultsConfig(BaseModel):
     heartbeat: Optional[HeartbeatConfig] = None
 
 
-class ForceMemorySearchConfig(BaseModel):
-    """Force memory search configuration."""
+class AutoMemorySearchConfig(BaseModel):
+    """Auto memory search configuration."""
 
     model_config = ConfigDict(extra="ignore")
 
     enabled: bool = Field(
         default=False,
-        description="Whether to force memory search on every turn",
+        description="Whether to auto search memory on every turn",
     )
 
     max_results: int = Field(
         default=1,
         ge=1,
         description=(
-            "Maximum number of results to return when force memory"
+            "Maximum number of results to return when auto memory"
             " search is enabled"
         ),
     )
@@ -375,7 +375,7 @@ class ForceMemorySearchConfig(BaseModel):
         ge=0.0,
         le=1.0,
         description=(
-            "Minimum relevance score for results when force memory"
+            "Minimum relevance score for results when auto memory"
             " search is enabled"
         ),
     )
@@ -384,7 +384,7 @@ class ForceMemorySearchConfig(BaseModel):
         default=10.0,
         gt=0.0,
         description=(
-            "Timeout in seconds for force memory search. Increase this value"
+            "Timeout in seconds for auto memory search. Increase this value"
             " when using remote embedding APIs that may have higher latency."
         ),
     )
@@ -455,8 +455,8 @@ class ReMeLightMemoryConfig(BaseModel):
         "(empty to disable)",
     )
 
-    force_memory_search_config: ForceMemorySearchConfig = Field(
-        default_factory=ForceMemorySearchConfig,
+    auto_memory_search_config: AutoMemorySearchConfig = Field(
+        default_factory=AutoMemorySearchConfig,
     )
 
     embedding_model_config: EmbeddingModelConfig = Field(

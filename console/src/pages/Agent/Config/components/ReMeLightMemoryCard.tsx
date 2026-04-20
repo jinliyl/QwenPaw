@@ -82,60 +82,60 @@ export function ReMeLightMemoryCard() {
       <Collapse
         items={[
           {
-            key: "forceMemorySearch",
-            label: t("agentConfig.forceMemorySearchCollapseLabel"),
+            key: "autoMemorySearch",
+            label: t("agentConfig.autoMemorySearchCollapseLabel"),
             children: (
               <>
                 <Form.Item
-                  label={t("agentConfig.forceMemorySearch")}
+                  label={t("agentConfig.autoMemorySearch")}
                   name={[
                     "reme_light_memory_config",
-                    "force_memory_search_config",
+                    "auto_memory_search_config",
                     "enabled",
                   ]}
                   valuePropName="checked"
-                  tooltip={t("agentConfig.forceMemorySearchTooltip")}
+                  tooltip={t("agentConfig.autoMemorySearchTooltip")}
                 >
                   <Switch />
                 </Form.Item>
 
                 <Form.Item
-                  label={t("agentConfig.forceMaxResults")}
+                  label={t("agentConfig.autoMaxResults")}
                   name={[
                     "reme_light_memory_config",
-                    "force_memory_search_config",
+                    "auto_memory_search_config",
                     "max_results",
                   ]}
                   rules={[
                     {
                       required: true,
-                      message: t("agentConfig.forceMaxResultsRequired"),
+                      message: t("agentConfig.autoMaxResultsRequired"),
                     },
                     {
                       type: "number",
                       min: 1,
-                      message: t("agentConfig.forceMaxResultsMin"),
+                      message: t("agentConfig.autoMaxResultsMin"),
                     },
                   ]}
-                  tooltip={t("agentConfig.forceMaxResultsTooltip")}
+                  tooltip={t("agentConfig.autoMaxResultsTooltip")}
                 >
                   <InputNumber style={{ width: "100%" }} min={1} step={1} />
                 </Form.Item>
 
                 <Form.Item
-                  label={t("agentConfig.forceMinScore")}
+                  label={t("agentConfig.autoMinScore")}
                   name={[
                     "reme_light_memory_config",
-                    "force_memory_search_config",
+                    "auto_memory_search_config",
                     "min_score",
                   ]}
                   rules={[
                     {
                       required: true,
-                      message: t("agentConfig.forceMinScoreRequired"),
+                      message: t("agentConfig.autoMinScoreRequired"),
                     },
                   ]}
-                  tooltip={t("agentConfig.forceMinScoreTooltip")}
+                  tooltip={t("agentConfig.autoMinScoreTooltip")}
                 >
                   <SliderWithValue
                     min={0}

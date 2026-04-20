@@ -564,7 +564,7 @@ class LightContextManager(BaseContextManager):
     ) -> dict[str, Any] | None:
         """Augment ``msg`` with retrieved memory results before reply.
 
-        When ``force_memory_search_config.enabled`` is enabled, calls
+        When ``auto_memory_search_config.enabled`` is enabled, calls
         ``memory_manager.retrieve()`` which appends a synthetic
         tool-use / tool-result message pair carrying the relevant memory
         snippets.  The augmented message list is returned as modified
@@ -588,7 +588,7 @@ class LightContextManager(BaseContextManager):
 
         agent_config = load_agent_config(self.agent_id)
         rlmc = agent_config.running.reme_light_memory_config
-        ms = rlmc.force_memory_search_config
+        ms = rlmc.auto_memory_search_config
 
         if not ms.enabled:
             return None

@@ -413,17 +413,17 @@ Controls agent runtime behavior, retry strategies, context management, and memor
 | `dream_cron`                    | string      | `"0 23 * * *"` | Cron expression for dream-based memory optimization (empty to disable) |
 | `rebuild_memory_index_on_start` | bool        | `false`        | Whether to rebuild memory search index on startup                      |
 | `recursive_file_watcher`        | bool        | `false`        | Whether to watch memory directory recursively                          |
-| `force_memory_search_config`    | object      | _(see below)_  | Force memory search configuration                                      |
+| `auto_memory_search_config`     | object      | _(see below)_  | Auto memory search configuration                                       |
 | `embedding_model_config`        | object      | _(see below)_  | Embedding model configuration                                          |
 
-**Force Memory Search Configuration (`reme_light_memory_config.force_memory_search_config` object):**
+**Auto Memory Search Configuration (`reme_light_memory_config.auto_memory_search_config` object):**
 
-| Field         | Type  | Default | Description                                                  |
-| ------------- | ----- | ------- | ------------------------------------------------------------ |
-| `enabled`     | bool  | `false` | Whether to force memory search on every conversation turn    |
-| `max_results` | int   | `1`     | Maximum results for forced memory search                     |
-| `min_score`   | float | `0.1`   | Minimum relevance score for forced memory search (0.0 - 1.0) |
-| `timeout`     | float | `10.0`  | Timeout in seconds for forced memory search                  |
+| Field         | Type  | Default | Description                                                |
+| ------------- | ----- | ------- | ---------------------------------------------------------- |
+| `enabled`     | bool  | `false` | Whether to auto search memory on every conversation turn   |
+| `max_results` | int   | `1`     | Maximum results for auto memory search                     |
+| `min_score`   | float | `0.1`   | Minimum relevance score for auto memory search (0.0 - 1.0) |
+| `timeout`     | float | `10.0`  | Timeout in seconds for auto memory search                  |
 
 **Embedding Configuration (`reme_light_memory_config.embedding_model_config` object):**
 

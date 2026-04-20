@@ -366,17 +366,17 @@ MCP（模型上下文协议）允许智能体连接外部服务（如 Filesystem
 | `dream_cron`                    | string      | `"0 23 * * *"` | 梦境记忆优化任务的 Cron 表达式（空字符串禁用）   |
 | `rebuild_memory_index_on_start` | bool        | `false`        | 启动时是否重建记忆搜索索引                       |
 | `recursive_file_watcher`        | bool        | `false`        | 是否递归监控记忆目录                             |
-| `force_memory_search_config`    | object      | _（见下方）_   | 强制记忆搜索配置                                 |
+| `auto_memory_search_config`     | object      | _（见下方）_   | 自动记忆搜索配置                                 |
 | `embedding_model_config`        | object      | _（见下方）_   | Embedding 模型配置                               |
 
-**强制记忆搜索配置（`reme_light_memory_config.force_memory_search_config` 对象）：**
+**自动记忆搜索配置（`reme_light_memory_config.auto_memory_search_config` 对象）：**
 
 | 字段          | 类型  | 默认值  | 说明                                        |
 | ------------- | ----- | ------- | ------------------------------------------- |
-| `enabled`     | bool  | `false` | 是否在每轮对话时强制执行记忆搜索            |
-| `max_results` | int   | `1`     | 强制搜索时最多返回的结果数                  |
-| `min_score`   | float | `0.1`   | 强制搜索时的最低相关性分数阈值（0.0 - 1.0） |
-| `timeout`     | float | `10.0`  | 强制搜索超时时间（秒）                      |
+| `enabled`     | bool  | `false` | 是否在每轮对话时自动执行记忆搜索            |
+| `max_results` | int   | `1`     | 自动搜索时最多返回的结果数                  |
+| `min_score`   | float | `0.1`   | 自动搜索时的最低相关性分数阈值（0.0 - 1.0） |
+| `timeout`     | float | `10.0`  | 自动搜索超时时间（秒）                      |
 
 **Embedding 配置（`reme_light_memory_config.embedding_model_config` 对象）：**
 
