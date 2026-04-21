@@ -139,11 +139,15 @@ class CommandHandler(ConversationCommandHandlerMixin):
         extra_instruction = args.strip()
         if not messages:
             return await self._make_system_msg(
-                "ℹ️ No messages to compact",
+                "📭 **No messages to compact.**\n\n"
+                "- Current memory is empty\n"
+                "- No action taken",
             )
         if not self._has_memory_manager() or not self._has_context_manager():
             return await self._make_system_msg(
-                "⚠️ Memory/Context Manager disabled — compaction unavailable",
+                "🚫 **Memory/Context Manager Disabled**\n\n"
+                "- Memory compaction is not available\n"
+                "- Enable memory and context manager to use this feature",
             )
 
         self.memory_manager.add_summarize_task(messages=messages)
@@ -161,9 +165,14 @@ class CommandHandler(ConversationCommandHandlerMixin):
                 f"{before / max_len * 100:.0f}%" if max_len > 0 else "N/A"
             )
             return await self._make_system_msg(
-                f"❌ Compact failed ({reason}) | "
-                f"📊 {len(messages)}msg ⏱️{_fmt_tokens(before)}/"
-                f"{_fmt_tokens(max_len)}({before_pct})",
+                f"❌ **Compact Failed!**\n\n"
+                f"- Reason: {reason}\n"
+                f"- Messages: {len(messages)}, "
+                f"Tokens: {_fmt_tokens(before)}/"
+                f"{_fmt_tokens(max_len)} ({before_pct})\n"
+                f"- Please check the logs for details\n"
+                f"- If context exceeds max length, "
+                f"please use `/new` or `/clear` to clear the context",
             )
 
         compact_content = result.get("history_compact", "")
@@ -175,11 +184,14 @@ class CommandHandler(ConversationCommandHandlerMixin):
         before_pct = f"{before / max_len * 100:.0f}%" if max_len > 0 else "N/A"
         after_pct = f"{after / max_len * 100:.0f}%" if max_len > 0 else "N/A"
         return await self._make_system_msg(
-            f"✅ Compact done | 📊 {len(messages)}msg "
-            f"⏱️{_fmt_tokens(before)}/"
-            f"{_fmt_tokens(max_len)}({before_pct}) → "
+            f"✅ **Compact Complete!**\n\n"
+            f"- Messages compacted: {len(messages)}\n"
+            f"- Tokens: {_fmt_tokens(before)}/"
+            f"{_fmt_tokens(max_len)}({before_pct}) -> "
             f"{_fmt_tokens(after)}/"
-            f"{_fmt_tokens(max_len)}({after_pct})",
+            f"{_fmt_tokens(max_len)}({after_pct})\n"
+            f"**Compressed Summary:**\n{compact_content}\n"
+            f"- Summary task started in background\n",
         )
 
     async def _process_new(self, messages: list[Msg], _args: str = "") -> Msg:

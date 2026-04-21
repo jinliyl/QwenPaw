@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=too-many-branches
+# pylint: disable=too-many-branches,too-many-statements
 """Handler for AgentScope message, token counting, and context."""
 
 import json
@@ -329,22 +329,36 @@ class AsMsgHandler:
         if total_tokens < context_compact_threshold:
             return [], messages, True, total_tokens, total_tokens
 
-        # Collect all tool_use ids and their message indices
-        # tool_use_id -> message index
-        tool_use_locations: dict[str, int] = {}
-        # tool_result_id -> message index
-        tool_result_locations: dict[str, int] = {}
+        # Build bidirectional indexes for tool_use and tool_result
+        # tool_id -> message index where tool_use appears
+        tool_id_to_use_idx: dict[str, int] = {}
+        # tool_id -> message index where tool_result appears
+        tool_id_to_result_idx: dict[str, int] = {}
+        # message index -> list of tool_use ids in that message
+        msg_idx_to_tool_use_ids: dict[int, list[str]] = {}
+        # message index -> list of tool_result ids in that message
+        msg_idx_to_tool_result_ids: dict[int, list[str]] = {}
 
         for idx, (msg, _) in enumerate(msg_stats):
+            tool_use_ids_in_msg: list[str] = []
+            tool_result_ids_in_msg: list[str] = []
+
             for block in msg.get_content_blocks("tool_use"):
                 tool_id = block.get("id", "")
                 if tool_id:
-                    tool_use_locations[tool_id] = idx
+                    tool_id_to_use_idx[tool_id] = idx
+                    tool_use_ids_in_msg.append(tool_id)
 
             for block in msg.get_content_blocks("tool_result"):
                 tool_id = block.get("id", "")
                 if tool_id:
-                    tool_result_locations[tool_id] = idx
+                    tool_id_to_result_idx[tool_id] = idx
+                    tool_result_ids_in_msg.append(tool_id)
+
+            if tool_use_ids_in_msg:
+                msg_idx_to_tool_use_ids[idx] = tool_use_ids_in_msg
+            if tool_result_ids_in_msg:
+                msg_idx_to_tool_result_ids[idx] = tool_result_ids_in_msg
 
         # Iterate from the end, accumulating messages
         # to keep within reserve limit
@@ -352,8 +366,7 @@ class AsMsgHandler:
         accumulated_tokens = 0
 
         for i in range(len(msg_stats) - 1, -1, -1):
-            # Skip messages already added as tool_use
-            # dependencies to avoid double-counting tokens
+            # Skip messages already added as dependencies
             if i in keep_indices:
                 continue
 
@@ -372,35 +385,47 @@ class AsMsgHandler:
                 )
                 break
 
-            # Check tool_result dependencies - if this message has tool_result,
-            # we need to ensure the corresponding tool_use is also included
-            tool_result_ids = [
-                block.get("id", "")
-                for block in msg.get_content_blocks("tool_result")
-                if block.get("id", "")
-            ]
-
-            # Calculate extra tokens needed for dependent tool_use messages
-            extra_tokens = 0
+            # Find dependent message indices using pre-built indexes
+            # If message has tool_use, need corresponding tool_result
+            # If message has tool_result, need corresponding tool_use
             dependent_indices: set[int] = set()
+            extra_tokens = 0
 
-            for tool_id in tool_result_ids:
-                if tool_id in tool_use_locations:
-                    tool_use_idx = tool_use_locations[tool_id]
-                    if tool_use_idx not in keep_indices and tool_use_idx != i:
-                        dependent_indices.add(tool_use_idx)
-                        _, dep_stat = msg_stats[tool_use_idx]
+            # Get tool_use ids in this message -> find tool_result indices
+            for tool_id in msg_idx_to_tool_use_ids.get(i, []):
+                if tool_id in tool_id_to_result_idx:
+                    result_idx = tool_id_to_result_idx[tool_id]
+                    if result_idx not in keep_indices and result_idx != i:
+                        dependent_indices.add(result_idx)
+                        _, dep_stat = msg_stats[result_idx]
                         extra_tokens += dep_stat.total_tokens
 
-            # Check if we can fit this message plus
-            # its dependencies within reserve
+            # Get tool_result ids in this message -> find tool_use indices
+            for tool_id in msg_idx_to_tool_result_ids.get(i, []):
+                if tool_id in tool_id_to_use_idx:
+                    use_idx = tool_id_to_use_idx[tool_id]
+                    if use_idx not in keep_indices and use_idx != i:
+                        dependent_indices.add(use_idx)
+                        _, dep_stat = msg_stats[use_idx]
+                        extra_tokens += dep_stat.total_tokens
+
+            # Check if we can fit this message plus dependencies
             if (
                 accumulated_tokens + stat.total_tokens + extra_tokens
                 > context_compact_reserve
             ):
+                has_tool_use = i in msg_idx_to_tool_use_ids
+                has_tool_result = i in msg_idx_to_tool_result_ids
+                dep_type = (
+                    "tool_result"
+                    if has_tool_use
+                    else "tool_use"
+                    if has_tool_result
+                    else "unknown"
+                )
                 logger.info(
                     f"Context check: message {i} requires "
-                    f"{extra_tokens} extra tokens for tool_use "
+                    f"{extra_tokens} extra tokens for {dep_type} "
                     f"dependencies, total would exceed reserve "
                     f"{context_compact_reserve}",
                 )

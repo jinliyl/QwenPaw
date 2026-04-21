@@ -791,22 +791,23 @@ class LightContextManager(BaseContextManager):
 
             if has_token_info:
                 pct = total_tokens / max_len * 100 if max_len > 0 else 0
-                token_info = (
-                    f"{_fmt_tokens(total_tokens)}/"
-                    f"{_fmt_tokens(max_len)}({pct:.0f}%)"
+                token_line = (
+                    f"  📝 Tokens: {_fmt_tokens(total_tokens)} / "
+                    f"{_fmt_tokens(max_len)} ({pct:.0f}%)"
                 )
             else:
-                token_info = f"?/{_fmt_tokens(max_len)}"
+                token_line = f"  📝 Tokens: ? / {_fmt_tokens(max_len)}"
 
             status_prefix = (
-                f"📊 {total_msgs}messages → "
-                f"🗜️{compact_count}(compact) + 💾{keep_count}(keep)"
-                f" | ⏱️{token_info}"
+                f"📊 Context Status:\n\n"
+                f"{token_line}\n\n"
+                f"  💬 {total_msgs} msgs -> compact({compact_count})"
+                f" + keep({keep_count})"
             )
 
             await self._print_status_message(
                 agent,
-                f"{status_prefix} | 🔄 Compact start...",
+                f"{status_prefix}\n\n" "🔄 Context compaction started...",
             )
 
             ccc = running_config.light_context_config.context_compact_config
@@ -830,7 +831,9 @@ class LightContextManager(BaseContextManager):
                     )
                     await self._print_status_message(
                         agent,
-                        f"{status_prefix} | ❌ Compact Failed (LLM: {e})",
+                        f"{status_prefix}\n\n"
+                        f"  ❌ Context compaction failed "
+                        f"(LLM error: {e}).",
                     )
                     return None
 
@@ -843,7 +846,9 @@ class LightContextManager(BaseContextManager):
                     reason = result.get("reason", "unknown")
                     await self._print_status_message(
                         agent,
-                        f"{status_prefix} | ❌ Compact Failed ({reason})",
+                        f"{status_prefix}\n\n"
+                        f"  ❌ Context compaction failed "
+                        f"({reason}).",
                     )
                 else:
                     if has_token_info:
@@ -851,22 +856,28 @@ class LightContextManager(BaseContextManager):
                         after_pct = (
                             after_total / max_len * 100 if max_len > 0 else 0
                         )
-                        after_token_info = (
-                            f"{_fmt_tokens(after_total)}/"
-                            f"{_fmt_tokens(max_len)}({after_pct:.0f}%)"
+                        after_token_line = (
+                            f"  📝 Tokens: {_fmt_tokens(after_total)} / "
+                            f"{_fmt_tokens(max_len)} ({after_pct:.0f}%)"
                         )
                     else:
-                        after_token_info = f"?/{_fmt_tokens(max_len)}"
+                        after_token_line = (
+                            f"  📝 Tokens: ? / {_fmt_tokens(max_len)}"
+                        )
                     await self._print_status_message(
                         agent,
-                        f"📊 {keep_count}msg | ⏱️{after_token_info} "
-                        f"| ✅ Compact Done",
+                        f"📊 Context Status:\n\n"
+                        f"{after_token_line}\n\n"
+                        f"  💬 {keep_count} msgs\n\n"
+                        "  ✅ Context compaction completed",
                     )
             else:
                 compact_content = ""
                 await self._print_status_message(
                     agent,
-                    f"{status_prefix} | ⏭️ Compact Skipped (disabled)",
+                    f"{status_prefix}\n\n"
+                    "  ⏭️ Context compaction skipped "
+                    "(disabled in config).",
                 )
 
             updated_count = await memory.mark_messages_compressed(
