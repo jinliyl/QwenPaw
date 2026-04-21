@@ -37,16 +37,21 @@ Long-term memory management includes the following capabilities:
 
 ## Memory File Structure
 
-Memories are stored as plain Markdown files, operated directly by the Agent via file tools. The default workspace uses a
-two-level structure:
+Memories are stored as plain Markdown files, operated directly by the Agent via file tools. The default workspace uses the following hierarchical structure:
 
-```mermaid
-graph LR
-    Workspace[Workspace working_dir] --> MEMORY[MEMORY.md Long-term Memory]
-    Workspace --> MemDir[memory/*]
-    MemDir --> Day1[2025-02-12.md]
-    MemDir --> Day2[2025-02-13.md]
-    MemDir --> DayN[...]
+```
+{workspace}/
+├── MEMORY.md              ← Auto-Dream optimized long-term memory (crystallized)
+│   Contains: Core decisions, user preferences, reusable experiences
+│
+├── memory/                ← Auto-Memory written daily memories (raw records)
+│   ├── 2026-04-20.md
+│   ├── 2026-04-21.md      ← Auto-Dream reads today's log
+│   └── ...
+│
+└── backup/                ← Auto-Dream created backups
+    ├── memory_backup_20260421_230000.md
+    └── ...                ← Can be used to restore historical versions
 ```
 
 ### MEMORY.md (Long-term Memory, Optional)
@@ -55,7 +60,7 @@ Stores long-lasting, rarely changing key information.
 
 - **Location**: `{working_dir}/MEMORY.md`
 - **Purpose**: Stores decisions, preferences, persistent facts and reusable experiences
-- **Updates**: Written by the Agent via `write` / `edit` file tools
+- **Updates**: Written by the Agent via `write` / `edit` file tools, or automatically optimized by **Auto-Dream**
 
 ### memory/YYYY-MM-DD.md (Daily Log)
 
@@ -65,28 +70,57 @@ One page per day, appended with the day's work and interactions.
 - **Purpose**: Records daily notes and runtime context
 - **Updates**: Appended by the Agent via `write` / `edit` file tools; automatically triggered when conversations become
   too long and need summarization
+- **Role**: Serves as input source for **Auto-Dream** optimization
 
-### When to Write Memory?
+### backup/ (Backup Directory)
 
-| Information Type                         | Write Target              | Method                 | Example                                                                |
-| ---------------------------------------- | ------------------------- | ---------------------- | ---------------------------------------------------------------------- |
-| Decisions, preferences, persistent facts | `MEMORY.md`               | `write` / `edit` tools | "Project uses Python 3.12", "Prefers pytest framework"                 |
-| Daily notes, runtime context             | `memory/YYYY-MM-DD.md`    | `write` / `edit` tools | "Fixed login bug today", "Deployed v2.1"                               |
-| User says "remember this"                | Write to file immediately | `write` tool           | Do not only save in memory!                                            |
-| Reusable experiences\*\*                 | `MEMORY.md`               | `write` / `edit` tools | Core knowledge distilled from daily records through Dream optimization |
+Stores backups of MEMORY.md created before each Auto-Dream optimization.
+
+- **Location**: `{working_dir}/backup/`
+- **Purpose**: Automatic backup before each Auto-Dream execution, enabling historical version recovery
+- **Naming format**: `memory_backup_YYYYMMDD_HHMMSS.md`
 
 ---
 
-## 🌙 Dream Optimization Mechanism
+## Memory Management and Workflow
 
-**Dream Optimization** is CoPaw's automatic memory consolidation feature that runs at a scheduled time (default: 23:00 daily). This feature automatically distills **core business decisions, confirmed user preferences, and high-value reusable experiences** from daily records into MEMORY.md using four key principles:
+The memory management system follows a three-phase automated workflow, where different types of memory information are automatically written at the appropriate stage:
 
-- **Extreme Minimalism**: Removes routine logs and temporary details
-- **State Overwrite**: Replaces outdated information with new states
-- **Inductive Consolidation**: Merges fragmented rules into universal principles
-- **Deprecation**: Deletes proven-false or obsolete content
+| Information Type             | Write Target           | Writing Timing                   | Processing Method                                                                                                                                             |
+| ---------------------------- | ---------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Daily notes, runtime context | `memory/YYYY-MM-DD.md` | **Accumulation Phase (Daytime)** | Auto-Memory automatically appends to daily logs                                                                                                               |
+| High-value knowledge         | `MEMORY.md`            | **Integration Phase (Night)**    | Auto-Dream crystallizes using five core principles, strictly limited to: core business decisions, confirmed user preferences, high-value reusable experiences |
+| User says "remember this"    | `memory/YYYY-MM-DD.md` | **Accumulation Phase (Daytime)** | Immediately writes to daily log, processed by Auto-Dream later                                                                                                |
 
-Controlled by the `dream_cron` configuration option (default `"0 23 * * *"`). Set to empty string to disable.
+### Accumulation Phase (Daytime) - Auto-Memory
+
+- **Function**: Automatically writes daily interactions and notes as raw records to the `memory/` directory
+- **Input**: User conversations, Agent tool call results, explicit "remember this" commands
+- **Output**: Date-organized raw log files `memory/YYYY-MM-DD.md`
+- **Characteristics**: Preserves all details without filtering or optimization
+
+### Integration Phase (Night) - Auto-Dream
+
+- **Core Concept**: QwenPaw's intelligent memory integration system that automatically optimizes MEMORY.md during quiet periods
+- **Trigger Time**: Enabled by default at 11 PM nightly (Cron expression `"0 23 * * *"`)
+- **Input Source**: Reads today's and historical logs from the `memory/` directory
+- **Five Core Principles**:
+  - **Noise Removal**: Eliminates temporary details, bug fixes, and one-time tasks
+  - **Essence Preservation**: Retains only core business decisions, confirmed user preferences, and reusable insights
+  - **Contradiction Resolution**: Automatically updates outdated information with the latest state
+  - **Structure Creation**: Organizes fragmented notes into coherent, universal principles
+  - **Backup Protection**: Automatically creates backups to the `backup/` directory before each optimization, enabling historical version rollback
+- **Output**: Generates high-quality crystallized knowledge updated to `MEMORY.md`
+- **Content Guidelines**: Strictly limited to three types of high-value information:
+  - Core business decisions
+  - Confirmed user preferences
+  - High-value reusable experiences
+
+### Retrieval Phase (Next Day) - Auto-Memory-Search
+
+- **Function**: Searches the Auto-Dream optimized MEMORY.md (more precise)
+- **Advantage**: Provides high-quality search results based on crystallized knowledge
+- **Effect**: Ensures retrieval accuracy and high value
 
 ---
 
