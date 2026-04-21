@@ -291,7 +291,6 @@ class AsMsgHandler:
     ) -> tuple[list[Msg], list[Msg], bool, int, int]:
         """Check if context exceeds threshold and split
         messages accordingly.
-
         Only when total tokens exceed context_compact_threshold,
         messages are split into messages_to_keep (within reserve limit)
         and messages_to_compact (older messages).
