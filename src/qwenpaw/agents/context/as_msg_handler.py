@@ -291,9 +291,10 @@ class AsMsgHandler:
     ) -> tuple[list[Msg], list[Msg], bool, int, int]:
         """Check if context exceeds threshold and split
         messages accordingly.
-        Only when total tokens exceed context_compact_threshold,
-        messages are split into messages_to_keep (within reserve limit)
-        and messages_to_compact (older messages).
+
+        Uses brute-force slicing: iterates from minimum keep count
+        upward, finding the maximum slice that satisfies both
+        token limit and tool alignment.
 
         Args:
             messages: List of Msg objects to check.
@@ -309,7 +310,7 @@ class AsMsgHandler:
             - messages_to_keep: Recent messages within
               the reserve limit
             - tools_aligned: Whether tool_use and tool_result
-              ids are aligned in messages_to_keep
+              ids are aligned in messages_to_keep (always True)
             - total_tokens: Total token count of all messages
             - keep_tokens: Token count of messages to keep
         """
@@ -317,138 +318,48 @@ class AsMsgHandler:
             return [], [], True, 0, 0
 
         # Calculate total tokens and stats for all messages
-        msg_stats: list[tuple[Msg, AsMsgStat]] = []
+        msg_stats: list[AsMsgStat] = []
         total_tokens = 0
         for msg in messages:
             stat = await self.stat_message(msg)
-            msg_stats.append((msg, stat))
+            msg_stats.append(stat)
             total_tokens += stat.total_tokens
 
         # If total tokens don't exceed threshold, no split needed
         if total_tokens < context_compact_threshold:
             return [], messages, True, total_tokens, total_tokens
 
-        # Build bidirectional indexes for tool_use and tool_result
-        # tool_id -> message index where tool_use appears
-        tool_id_to_use_idx: dict[str, int] = {}
-        # tool_id -> message index where tool_result appears
-        tool_id_to_result_idx: dict[str, int] = {}
-        # message index -> list of tool_use ids in that message
-        msg_idx_to_tool_use_ids: dict[int, list[str]] = {}
-        # message index -> list of tool_result ids in that message
-        msg_idx_to_tool_result_ids: dict[int, list[str]] = {}
+        # Brute-force slicing: from minimum keep count upward
+        # Find the maximum slice satisfying both conditions
+        # Fallback: empty slice (always valid)
+        best_keep_count = 0
+        best_keep_tokens = 0
 
-        for idx, (msg, _) in enumerate(msg_stats):
-            tool_use_ids_in_msg: list[str] = []
-            tool_result_ids_in_msg: list[str] = []
+        for keep_count in range(1, len(messages) + 1):
+            keep_tokens = sum(
+                stat.total_tokens for stat in msg_stats[-keep_count:]
+            )
 
-            for block in msg.get_content_blocks("tool_use"):
-                tool_id = block.get("id", "")
-                if tool_id:
-                    tool_id_to_use_idx[tool_id] = idx
-                    tool_use_ids_in_msg.append(tool_id)
-
-            for block in msg.get_content_blocks("tool_result"):
-                tool_id = block.get("id", "")
-                if tool_id:
-                    tool_id_to_result_idx[tool_id] = idx
-                    tool_result_ids_in_msg.append(tool_id)
-
-            if tool_use_ids_in_msg:
-                msg_idx_to_tool_use_ids[idx] = tool_use_ids_in_msg
-            if tool_result_ids_in_msg:
-                msg_idx_to_tool_result_ids[idx] = tool_result_ids_in_msg
-
-        # Iterate from the end, accumulating messages
-        # to keep within reserve limit
-        keep_indices: set[int] = set()
-        accumulated_tokens = 0
-
-        for i in range(len(msg_stats) - 1, -1, -1):
-            # Skip messages already added as dependencies
-            if i in keep_indices:
-                continue
-
-            msg, stat = msg_stats[i]
-
-            # Check if adding this message would exceed reserve limit
-            if (
-                accumulated_tokens + stat.total_tokens
-                > context_compact_reserve
-            ):
-                logger.info(
-                    f"Context check: adding message {i} with "
-                    f"{stat.total_tokens} tokens would exceed "
-                    f"reserve {context_compact_reserve} "
-                    f"(current: {accumulated_tokens})",
-                )
+            if keep_tokens > context_compact_reserve:
+                # Exceeds reserve limit, stop expanding
                 break
 
-            # Find dependent message indices using pre-built indexes
-            # If message has tool_use, need corresponding tool_result
-            # If message has tool_result, need corresponding tool_use
-            dependent_indices: set[int] = set()
-            extra_tokens = 0
+            messages_to_keep = messages[-keep_count:]
+            if self.validate_tool_ids_alignment(messages_to_keep):
+                # Valid slice, update best (keeps maximum valid)
+                best_keep_count = keep_count
+                best_keep_tokens = keep_tokens
 
-            # Get tool_use ids in this message -> find tool_result indices
-            for tool_id in msg_idx_to_tool_use_ids.get(i, []):
-                if tool_id in tool_id_to_result_idx:
-                    result_idx = tool_id_to_result_idx[tool_id]
-                    if result_idx not in keep_indices and result_idx != i:
-                        dependent_indices.add(result_idx)
-                        _, dep_stat = msg_stats[result_idx]
-                        extra_tokens += dep_stat.total_tokens
+        # Build final split based on best_keep_count
+        messages_to_keep = (
+            messages[-best_keep_count:] if best_keep_count > 0 else []
+        )
+        messages_to_compact = (
+            messages[:-best_keep_count] if best_keep_count > 0 else messages
+        )
 
-            # Get tool_result ids in this message -> find tool_use indices
-            for tool_id in msg_idx_to_tool_result_ids.get(i, []):
-                if tool_id in tool_id_to_use_idx:
-                    use_idx = tool_id_to_use_idx[tool_id]
-                    if use_idx not in keep_indices and use_idx != i:
-                        dependent_indices.add(use_idx)
-                        _, dep_stat = msg_stats[use_idx]
-                        extra_tokens += dep_stat.total_tokens
-
-            # Check if we can fit this message plus dependencies
-            if (
-                accumulated_tokens + stat.total_tokens + extra_tokens
-                > context_compact_reserve
-            ):
-                has_tool_use = i in msg_idx_to_tool_use_ids
-                has_tool_result = i in msg_idx_to_tool_result_ids
-                dep_type = (
-                    "tool_result"
-                    if has_tool_use
-                    else "tool_use"
-                    if has_tool_result
-                    else "unknown"
-                )
-                logger.info(
-                    f"Context check: message {i} requires "
-                    f"{extra_tokens} extra tokens for {dep_type} "
-                    f"dependencies, total would exceed reserve "
-                    f"{context_compact_reserve}",
-                )
-                break
-
-            # Add this message and its dependencies
-            keep_indices.add(i)
-            keep_indices.update(dependent_indices)
-            accumulated_tokens += stat.total_tokens + extra_tokens
-
-        # Build final lists based on keep_indices (preserve original order)
-        messages_to_compact = []
-        messages_to_keep = []
-
-        for idx, (msg, _) in enumerate(msg_stats):
-            if idx in keep_indices:
-                messages_to_keep.append(msg)
-            else:
-                messages_to_compact.append(msg)
-
-        # Validate tool ids alignment for messages_to_keep
+        # Validate tool alignment for final split (defensive check)
         tools_aligned = self.validate_tool_ids_alignment(messages_to_keep)
-
-        keep_tokens = accumulated_tokens
 
         logger.info(
             f"Context check result: {len(messages_to_compact)} "
@@ -456,7 +367,7 @@ class AsMsgHandler:
             f"messages to keep, total tokens: {total_tokens}, "
             f"threshold: {context_compact_threshold}, "
             f"reserve: {context_compact_reserve}, "
-            f"kept tokens: {keep_tokens}, "
+            f"kept tokens: {best_keep_tokens}, "
             f"tools_aligned: {tools_aligned}",
         )
 
@@ -465,5 +376,5 @@ class AsMsgHandler:
             messages_to_keep,
             tools_aligned,
             total_tokens,
-            keep_tokens,
+            best_keep_tokens,
         )
