@@ -310,7 +310,7 @@ class AsMsgHandler:
             - messages_to_keep: Recent messages within
               the reserve limit
             - tools_aligned: Whether tool_use and tool_result
-              ids are aligned in messages_to_keep (always True)
+              ids are aligned in messages_to_keep
             - total_tokens: Total token count of all messages
             - keep_tokens: Token count of messages to keep
         """
@@ -344,8 +344,7 @@ class AsMsgHandler:
                 # Exceeds reserve limit, stop expanding
                 break
 
-            messages_to_keep = messages[-keep_count:]
-            if self.validate_tool_ids_alignment(messages_to_keep):
+            if self.validate_tool_ids_alignment(messages[-keep_count:]):
                 # Valid slice, update best (keeps maximum valid)
                 best_keep_count = keep_count
                 best_keep_tokens = keep_tokens
