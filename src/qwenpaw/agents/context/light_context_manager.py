@@ -731,10 +731,15 @@ class LightContextManager(BaseContextManager):
             memory = agent.memory
             system_prompt = agent.sys_prompt
             compressed_summary = memory.get_compressed_summary()
-            str_token_count = await token_counter.count(
+            sys_token_count = await token_counter.count(
                 messages=[],
-                text=(system_prompt or "") + (compressed_summary or ""),
+                text=(system_prompt or ""),
             )
+            summary_token_count = await token_counter.count(
+                messages=[],
+                text=(compressed_summary or ""),
+            )
+            str_token_count = sys_token_count + summary_token_count
 
             ccc = running_config.light_context_config.context_compact_config
             context_compact_threshold = int(
@@ -774,11 +779,6 @@ class LightContextManager(BaseContextManager):
 
             if not messages_to_compact:
                 return None
-
-            if running_config.reme_light_memory_config.summarize_when_compact:
-                memory_manager.add_summarize_task(
-                    messages=messages_to_compact,
-                )
 
             # Build context status info for printing
             max_len = running_config.max_input_length
@@ -837,8 +837,8 @@ class LightContextManager(BaseContextManager):
                         context_compact_reserve=left_compact_threshold,
                         as_token_counter=token_counter,
                     )
-                    messages_to_compact = fallback_to_compact or []
-                    messages_to_keep = fallback_to_keep or messages
+                    messages_to_compact = fallback_to_compact
+                    messages_to_keep = fallback_to_keep
                     compact_content = memory.get_compressed_summary() or ""
                     keep_count = len(messages_to_keep)
                     compact_count = len(messages_to_compact)
@@ -861,7 +861,11 @@ class LightContextManager(BaseContextManager):
                         f"Context Status: {token_line} {msg_line}",
                     )
                 else:
-                    after_total = str_token_count + keep_tokens
+                    after_total = (
+                        sys_token_count
+                        + result.get("after_tokens", 0)
+                        + keep_tokens
+                    )
                     after_pct = (
                         after_total / max_len * 100 if max_len > 0 else 0
                     )
@@ -891,8 +895,8 @@ class LightContextManager(BaseContextManager):
                     context_compact_reserve=left_compact_threshold,
                     as_token_counter=token_counter,
                 )
-                messages_to_compact = fallback_to_compact or []
-                messages_to_keep = fallback_to_keep or messages
+                messages_to_compact = fallback_to_compact
+                messages_to_keep = fallback_to_keep
                 compact_content = memory.get_compressed_summary() or ""
                 keep_count = len(messages_to_keep)
                 compact_count = len(messages_to_compact)
@@ -919,6 +923,12 @@ class LightContextManager(BaseContextManager):
                 messages_to_compact,
             )
             logger.info(f"Marked {updated_count} messages as compacted")
+
+            rlmc = running_config.reme_light_memory_config
+            if messages_to_compact and rlmc.summarize_when_compact:
+                memory_manager.add_summarize_task(
+                    messages=messages_to_compact,
+                )
 
             await memory.update_compressed_summary(compact_content)
 
