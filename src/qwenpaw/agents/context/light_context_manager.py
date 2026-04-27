@@ -334,8 +334,8 @@ class LightContextManager(BaseContextManager):
 
         return messages
 
+    @staticmethod
     async def _check_context(
-        self,
         messages: list[Msg],
         context_compact_threshold: int,
         context_compact_reserve: int,
@@ -791,20 +791,15 @@ class LightContextManager(BaseContextManager):
 
             pct = total_tokens / max_len * 100 if max_len > 0 else 0
             token_line = (
-                f"  📝 Tokens: {_fmt_tokens(total_tokens)} / "
+                f"📝 {_fmt_tokens(total_tokens)} / "
                 f"{_fmt_tokens(max_len)} ({pct:.0f}%)"
-            )
-
-            status_prefix = (
-                f"📊 Context Status:\n\n"
-                f"{token_line}\n\n"
-                f"  💬 {total_msgs} msgs -> compact({compact_count})"
-                f" + keep({keep_count})"
             )
 
             await self._print_status_message(
                 agent,
-                f"{status_prefix}\n\n" "🔄 Context compaction started...",
+                f"🔄 Context compaction started... Context "
+                f"Status: {token_line} 💬 {total_msgs} msgs -> "
+                f"compact({compact_count}) + keep({keep_count})",
             )
 
             if ccc.enabled:
@@ -848,24 +843,22 @@ class LightContextManager(BaseContextManager):
                     keep_count = len(messages_to_keep)
                     compact_count = len(messages_to_compact)
                     total_tokens = str_token_count + ctx_total_tokens
-                    keep_tokens = ctx_keep_tokens
                     pct = total_tokens / max_len * 100 if max_len > 0 else 0
                     token_line = (
-                        f"  📝 Tokens: {_fmt_tokens(total_tokens)} / "
+                        f"📝 {_fmt_tokens(total_tokens)} / "
                         f"{_fmt_tokens(max_len)} ({pct:.0f}%)"
                     )
-                    status_prefix = (
-                        f"📊 Context Status:\n\n"
-                        f"{token_line}\n\n"
-                        f"  💬 {total_msgs} msgs -> drop({compact_count})"
-                        f" + keep({keep_count})"
-                    )
+                    if compact_count > 0:
+                        msg_line = (
+                            f"💬 Fallback: keep({keep_count})"
+                            f" + drop({compact_count})"
+                        )
+                    else:
+                        msg_line = f"💬 Fallback: keep({keep_count}) msgs"
                     await self._print_status_message(
                         agent,
-                        f"{status_prefix}\n\n"
-                        f"  ❌ Context compaction failed ({reason})\n\n"
-                        f"  💬 Fallback: keep({keep_count}) "
-                        f"+ drop({compact_count})",
+                        f"❌ Context compaction failed ({reason}) "
+                        f"Context Status: {token_line} {msg_line}",
                     )
                 else:
                     after_total = str_token_count + keep_tokens
@@ -873,15 +866,14 @@ class LightContextManager(BaseContextManager):
                         after_total / max_len * 100 if max_len > 0 else 0
                     )
                     after_token_line = (
-                        f"  📝 Tokens: {_fmt_tokens(after_total)} / "
+                        f"📝 {_fmt_tokens(after_total)} / "
                         f"{_fmt_tokens(max_len)} ({after_pct:.0f}%)"
                     )
                     await self._print_status_message(
                         agent,
-                        f"📊 Context Status:\n\n"
-                        f"{after_token_line}\n\n"
-                        f"  💬 {keep_count} msgs\n\n"
-                        "  ✅ Context compaction completed",
+                        f"✅ Context compaction completed! "
+                        f"Context Status: {after_token_line} "
+                        f"💬 {keep_count} msgs",
                     )
             else:
                 # Fallback: retry with larger reserve to keep more history.
@@ -905,24 +897,22 @@ class LightContextManager(BaseContextManager):
                 keep_count = len(messages_to_keep)
                 compact_count = len(messages_to_compact)
                 total_tokens = str_token_count + ctx_total_tokens
-                keep_tokens = ctx_keep_tokens
                 pct = total_tokens / max_len * 100 if max_len > 0 else 0
                 token_line = (
-                    f"  📝 Tokens: {_fmt_tokens(total_tokens)} / "
+                    f"📝 {_fmt_tokens(total_tokens)} / "
                     f"{_fmt_tokens(max_len)} ({pct:.0f}%)"
                 )
-                status_prefix = (
-                    f"📊 Context Status:\n\n"
-                    f"{token_line}\n\n"
-                    f"  💬 {total_msgs} msgs -> drop({compact_count})"
-                    f" + keep({keep_count})"
-                )
+                if compact_count > 0:
+                    msg_line = (
+                        f"💬 Fallback: keep({keep_count})"
+                        f" + drop({compact_count})"
+                    )
+                else:
+                    msg_line = f"💬 Fallback: keep({keep_count}) msgs"
                 await self._print_status_message(
                     agent,
-                    f"{status_prefix}\n\n"
-                    f"  ⏭️ Context compaction skipped (disabled)\n\n"
-                    f"  💬 Fallback: keep({keep_count}) "
-                    f"+ drop({compact_count})",
+                    f"⏭️ Context compaction skipped (disabled) "
+                    f"Context Status: {token_line} {msg_line}",
                 )
 
             updated_count = await memory.mark_messages_compressed(
